@@ -1,0 +1,21 @@
+[package]
+name = "block_world"
+version = "0.1.0"
+authors = ["Joeyrp <jrpollack107@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+glium = "*"
+nalgebra-glm = "0.4"
+image = "0.21.0"
+tobj = "0.1.7"
+device_query = "0.1.*"
+rand = "0.7"
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3", features = ["winuser"] }
+
+[build-dependencies]
+walkdir = "2.1"

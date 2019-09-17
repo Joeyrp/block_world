@@ -1,0 +1,78 @@
+
+
+extern crate image;
+extern crate nalgebra_glm as glm;
+extern crate tobj;
+
+use std::vec;
+use std::path::Path;
+
+// use glium::{texture, texture::RawImage2d};
+
+#[derive(Copy, Clone, Debug)]
+pub struct Vertex 
+{
+    position: [f32; 3],
+    tex_coord: [f32; 2],
+    norm: [f32; 3],
+}
+
+#[derive(Debug)]
+pub struct Material
+{
+    pub diffuse: glium::texture::Texture2d,
+    pub specular: glium::texture::Texture2d,
+    pub normal: glium::texture::Texture2d,
+    pub shininess: f32,
+}
+
+#[derive(Debug)]
+pub struct Mesh
+{
+    pub name: String,
+    pub num_tris: i32,
+    vb: glium::VertexBuffer<Vertex>,
+    indices: glium::index::NoIndices,
+    pub material: Material,
+}
+
+pub struct Model
+{
+    pub name: String,
+    pub meshes: Vec<Mesh>,
+    pub model_mat: glm::Mat4,
+}
+
+impl Model
+{
+    pub fn new(filename: &str) -> Result<Model, String>
+    {
+        implement_vertex!(Vertex, position, tex_coord, norm);
+
+        let obj_file = tobj::load_obj(&Path::new(filename));
+        assert!(obj_file.is_ok());
+        let (models, materials) = obj_file.unwrap();
+
+        let mut mesh_list: Vec<Mesh> = Vec::new();
+        for (_i, m) in models.iter().enumerate() 
+        {
+            let mesh = &m.mesh;
+            let mut vertices: Vec<Vertex> = Vec::new();
+
+            assert!(mesh.positions.len() % 3 == 0);
+            for v in 0..mesh.positions.len() / 3 
+            {
+                vertices.push(Vertex 
+                {
+                    position: [mesh.positions[3 * v], mesh.positions[3 * v + 1], mesh.positions[3 * v + 2]],
+                    tex_coord: [mesh.texcoords[2 * v], mesh.texcoords[2 * v + 1]],
+                    norm: [mesh.normals[3 * v], mesh.normals[3 * v + 1], mesh.normals[3 * v + 2]]
+                });
+            }
+
+
+        }
+
+        Ok(Model { name: String::from("TEST"), meshes: Vec::new(), model_mat: glm::Mat4::identity() })
+    }
+}
