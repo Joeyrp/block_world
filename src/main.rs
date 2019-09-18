@@ -54,8 +54,8 @@ fn main()
 
     // Scene for demoing/debugging game objects
     //let mut obj_demo_scene = ObjectDemoScene::new(&mut asset_lib, &display, &perspective).unwrap();
-    let mut chunk_test_scene = ChunkDemoScene::new(&mut asset_lib, &display, &perspective).unwrap();
-    chunk_test_scene.make_test_one(&display);
+    let mut chunk_test_scene = ChunkDemoScene::new(&mut asset_lib, display.clone(), &perspective).unwrap();
+    chunk_test_scene.make_test_one();
     
     
     ///////////////////////////////////////////////////////////
