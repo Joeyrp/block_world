@@ -13,8 +13,8 @@ pub struct Voxel
 #[derive(Clone)]
 pub struct Layer
 {
-    width: usize,
-    depth: usize,
+    pub width: usize,
+    pub depth: usize,
     pub layer: Vec<Vec<Voxel>>,
    // combined: Mesh
 }
@@ -54,7 +54,7 @@ impl Layer
 
 pub struct WorldChunk
 {
-    height: usize,
+    pub height: usize,
     pub layers: Vec<Layer>
 }
 

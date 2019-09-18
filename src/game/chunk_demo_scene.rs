@@ -33,7 +33,7 @@ impl ChunkDemoScene
         let mut grid = GridPlane::new(&display, [0.75, 0.75, 0.75], 1.0, 20, 20).unwrap();
         grid.projection = *perspective;
 
-        Ok( ChunkDemoScene { grid, chunk: WorldChunk::new(32, 32, 16), perspective: *perspective, instance_buff: None })
+        Ok( ChunkDemoScene { grid, chunk: WorldChunk::new(16, 16, 16), perspective: *perspective, instance_buff: None })
     }
 
     pub fn make_chunk_single_layer(self: &mut ChunkDemoScene)
@@ -50,22 +50,30 @@ impl ChunkDemoScene
 
     pub fn make_test_one(self: &mut ChunkDemoScene, display: &glium::Display)
     {
-        self.chunk.layers[12].fill_with(1);
-        self.chunk.layers[11].fill_with(2);
-        self.chunk.layers[10].fill_with(2);
+        /*
+            LAYERS: 16x16x16 = 4,096
+            INTERIOR: 14x14x14 = 2,744
 
-        for i in 0..10
+            SHOULD RENDER: 1,352
+        */
+
+       // self.chunk.layers[15].fill_with(1);
+      //  self.chunk.layers[14].fill_with(2);
+      //  self.chunk.layers[13].fill_with(2);
+
+        for i in 0..16
         {
-            self.chunk.layers[i].fill_with(3);
+            self.chunk.layers[i].fill_with((i % 3 + 1) as u16);
         }
 
-        self.chunk.layers[12].layer[7][7].id = 0;
-        self.chunk.layers[11].layer[7][7].id = 0;
-        self.chunk.layers[10].layer[7][7].id = 0;
-        self.chunk.layers[9].layer[7][7].id = 0;
+        // self.chunk.layers[12].layer[7][7].id = 0;
+        // self.chunk.layers[11].layer[7][7].id = 0;
+        // self.chunk.layers[10].layer[7][7].id = 0;
+        // self.chunk.layers[9].layer[7][7].id = 0;
 
         // building the vertex buffer with the attributes per instance
-        let mut count = 0;
+        let mut total_blocks = 0;
+        let mut skipped_blocks = 0;
         self.instance_buff = {
             let mut data: Vec<Attr> = vec![];
             let cube_size = 1.0;
@@ -81,20 +89,22 @@ impl ChunkDemoScene
                         {
                             continue;
                         }
+
+                        total_blocks += 1;
                         
-                        // Check if this block is fully surrounded by neighbors
-                        let mut bottom_check = false;
-                        if l > 0
+                        let mut skip = true;
+
+                        if self.has_neighbor_gap(r, l, c)
                         {
-                            bottom_check = self.has_neighbor_gap(r, l - 1, c, true);
+                            skip = false;
                         }
-                        if !self.has_neighbor_gap(r, l, c, false)
-                            && !bottom_check
-                            && !self.has_neighbor_gap(r, l + 1, c, true)
-                            {
-                                self.chunk.layers[l].layer[r][c].id = 0;
-                                continue;
-                            }
+
+                        if skip
+                        {
+                            self.chunk.layers[l].layer[r][c].visiable = false;
+                            skipped_blocks += 1;
+                            continue;
+                        }
 
                         let x = (c as f32) * cube_size;
                         let y = (l as f32) * cube_size;
@@ -107,7 +117,7 @@ impl ChunkDemoScene
                 }
             }
 
-            println!("rendering {} cubes", data.len());
+            println!("total blocks: {}\nskipped blocks: {}\nrendering {} cubes", total_blocks, skipped_blocks, data.len());
             Some(glium::vertex::VertexBuffer::dynamic(display, &data).unwrap())
         };
     }
@@ -165,63 +175,72 @@ impl ChunkDemoScene
                     &params).unwrap();
     }
 
-    fn has_neighbor_gap(self: &ChunkDemoScene, x: usize, y: usize, z: usize, include_self: bool) -> bool
+    fn has_neighbor_gap(self: &ChunkDemoScene, x: usize, y: usize, z: usize) -> bool
     {
-        if include_self && self.chunk.layers[y].layer[x][z].id < 1
-        {
-            return true;
-        }
+        let width = self.chunk.layers[y].width;
+        let height = self.chunk.height;
+        let depth = self.chunk.layers[y].depth;
 
-        // Surrounding 8 viewed from the side
-        // left
-        if x > 0 && self.chunk.layers[y].layer[x - 1][z].id < 1
-        {
-            return true;
-        }
+        if x == 0 || y == 0 || z == 0
+            || x == width -1
+            || y == height -1
+            || z == depth -1
+            {
+                return true;
+            }
         
-        // left top
-        if x > 0 && z > 0 && self.chunk.layers[y].layer[x - 1][z - 1].id < 1
-        {
-            return true;
-        }
+        // if include_self && self.chunk.layers[y].layer[x][z].id < 1
+        // {
+        //     return true;
+        // }
 
-        // top
-        if z > 0 && self.chunk.layers[y].layer[x][z - 1].id < 1
-        {
-            return true;
-        }
-
-        // top right
-        if x < self.chunk.layers[y].layer.len() && z > 0 && self.chunk.layers[y].layer[x + 1][z - 1].id < 1
-        {
-            return true;
-        }
-
-        // right
-        if x < self.chunk.layers[y].layer.len() && self.chunk.layers[y].layer[x + 1][z].id < 1
-        {
-            return true;
-        }
-
-        // bottom right
-        if x < self.chunk.layers[y].layer.len() 
-            && z < self.chunk.layers[y].layer[x + 1].len() 
-            && self.chunk.layers[y].layer[x + 1][z + 1].id < 1
-        {
-            return true;
-        }
+        // // left
+        // if self.chunk.layers[y].layer[x - 1][z].id < 1
+        // {
+        //     return true;
+        // }
         
-        // bottom
-        if z < self.chunk.layers[y].layer[x + 1].len() && self.chunk.layers[y].layer[x][z + 1].id < 1
-        {
-            return true;
-        }
+        // // left top
+        // if self.chunk.layers[y].layer[x - 1][z - 1].id < 1
+        // {
+        //     return true;
+        // }
 
-        // bottom left
-        if x > 0 && z < self.chunk.layers[y].layer[x + 1].len() && self.chunk.layers[y].layer[x - 1][z + 1].id < 1
-        {
-            return true;
-        }
+        // // top
+        // if self.chunk.layers[y].layer[x][z - 1].id < 1
+        // {
+        //     return true;
+        // }
+
+        // // top right
+        // if self.chunk.layers[y].layer[x + 1][z - 1].id < 1
+        // {
+        //     return true;
+        // }
+
+        // // right
+        // if self.chunk.layers[y].layer[x + 1][z].id < 1
+        // {
+        //     return true;
+        // }
+
+        // // bottom right
+        // if self.chunk.layers[y].layer[x + 1][z + 1].id < 1
+        // {
+        //     return true;
+        // }
+        
+        // // bottom
+        // if self.chunk.layers[y].layer[x][z + 1].id < 1
+        // {
+        //     return true;
+        // }
+
+        // // bottom left
+        // if self.chunk.layers[y].layer[x - 1][z + 1].id < 1
+        // {
+        //     return true;
+        // }
 
         return false;
     }
