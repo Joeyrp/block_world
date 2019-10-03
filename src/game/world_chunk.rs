@@ -1,5 +1,5 @@
 
-use std::fmt;
+use std::{fmt, rc::Rc};
 
 // use crate::graphics::Mesh;
 
@@ -7,7 +7,7 @@ use std::fmt;
 pub struct Voxel
 {
     pub id: u16,
-    pub visiable: bool
+    pub visible: bool
 }
 
 #[derive(Copy, Clone)]
@@ -44,7 +44,7 @@ impl Layer
 {
     pub fn new(width: usize, depth: usize) -> Layer
     {
-        Layer { layer: vec![vec![Voxel { id: 0, visiable: true }; width]; depth] }
+        Layer { layer: vec![vec![Voxel { id: 0, visible: true }; width]; depth] }
     }
 
     pub fn fill_with(self: &mut Layer, value: u16)
@@ -53,7 +53,7 @@ impl Layer
         {
             for i in 0..row.len()
             {
-                row[i] = Voxel { id: value, visiable: true };
+                row[i] = Voxel { id: value, visible: true };
             } 
         }
     }
@@ -65,7 +65,7 @@ pub struct WorldChunk
     pub height: usize,
     pub depth: usize,
     pub layers: Vec<Layer>,
-    pub instance_buff: Option<glium::VertexBuffer<Attr>>
+    pub instance_buff: Option<Rc<glium::VertexBuffer<Attr>>>
 }
 
 impl fmt::Display for WorldChunk
@@ -93,7 +93,21 @@ impl WorldChunk
         WorldChunk { width, height, depth, layers, instance_buff: None }
     }
 
-    pub fn gen_instance_buffer(self: &mut WorldChunk, display: &glium::Display, debug_output: bool)
+    pub fn get_instance_buffer(self: &mut WorldChunk, display: &glium::Display) -> Rc<glium::VertexBuffer<Attr>>
+    {
+        if self.instance_buff.is_none()
+        {
+            self.gen_instance_buffer(display, true);
+        }
+
+        match &self.instance_buff
+        {
+            Some(ib) => ib.clone(),
+            None => panic!("ERROR RETURNING INSTANCE BUFFER!!!")
+        }
+    }
+
+    fn gen_instance_buffer(self: &mut WorldChunk, display: &glium::Display, debug_output: bool)
     {
         let mut total_blocks = 0;
         let mut skipped_blocks = 0;
@@ -106,9 +120,9 @@ impl WorldChunk
                 {
                     for c in 0..self.layers[l].layer[r].len()
                     {
-                        let block = &self.layers[l].layer[r][c];
+                        //let block = &mut self.layers[l].layer[r][c];
                         
-                        if block.id < 1
+                        if self.layers[l].layer[r][c].id < 1
                         {
                             continue;
                         }
@@ -120,20 +134,20 @@ impl WorldChunk
                         if self.has_neighbor_gap(r, l, c)
                         {
                             skip = false;
-                        }
+                        }                        
 
                         if skip
                         {
-                            self.layers[l].layer[r][c].visiable = false;
                             skipped_blocks += 1;
                             continue;
                         }
 
+                        self.layers[l].layer[r][c].visible = !skip;
+
                         let x = (c as f32) * cube_size;
                         let y = (l as f32) * cube_size;
                         let z = (r as f32) * cube_size;
-
-                        let texture = block.id as u32;
+                        let texture = self.layers[l].layer[r][c].id as u32;
 
                         data.push(Attr { offset: (x, y, z), texture: texture });
                     }
@@ -142,11 +156,11 @@ impl WorldChunk
 
             if debug_output
             {
-                println!("Chunk Dimensions (16x16x16)\ntotal blocks: {}\nskipped blocks: {}\nrendering {} cubes", 
-                        total_blocks, skipped_blocks, data.len());
+                println!("Chunk Dimensions ({}x{}x{})\ntotal blocks: {}\nskipped blocks: {}\nrendering {} blocks", 
+                        self.width, self.height, self.depth, total_blocks, skipped_blocks, data.len());
             }
 
-            Some(glium::vertex::VertexBuffer::dynamic(display, &data).unwrap())
+            Some(Rc::new(glium::vertex::VertexBuffer::dynamic(display, &data).unwrap()))
         };
     }
 
@@ -160,63 +174,68 @@ impl WorldChunk
             {
                 return true;
             }
-        
-        for offset in -1..2 as i32
+
+        // above
+        if self.layers[y + 1].layer[x][z].id < 1
         {
-            let idx = (y as i32 + offset) as usize;
-            if self.layers[idx].layer[x][z].id < 1
-            {
-                return true;
-            }
+            return true;
+        }
 
-            // left
-            if self.layers[idx].layer[x - 1][z].id < 1
-            {
-                return true;
-            }
-            
-            // left top
-            if self.layers[idx].layer[x - 1][z - 1].id < 1
-            {
-                return true;
-            }
+        // below
+        if self.layers[y - 1].layer[x][z].id < 1
+        {
+            return true;
+        }
 
-            // top
-            if self.layers[idx].layer[x][z - 1].id < 1
-            {
-                return true;
-            }
+        // The rest of the comments are from the perspective
+        // of a face-on view of the layer.
 
-            // top right
-            if self.layers[idx].layer[x + 1][z - 1].id < 1
-            {
-                return true;
-            }
+        // left
+        if self.layers[y].layer[x - 1][z].id < 1
+        {
+            return true;
+        }
+        
+        // left top
+        if self.layers[y].layer[x - 1][z - 1].id < 1
+        {
+            return true;
+        }
 
-            // right
-            if self.layers[idx].layer[x + 1][z].id < 1
-            {
-                return true;
-            }
+        // top
+        if self.layers[y].layer[x][z - 1].id < 1
+        {
+            return true;
+        }
 
-            // bottom right
-            if self.layers[idx].layer[x + 1][z + 1].id < 1
-            {
-                return true;
-            }
-            
-            // bottom
-            if self.layers[idx].layer[x][z + 1].id < 1
-            {
-                return true;
-            }
+        // top right
+        if self.layers[y].layer[x + 1][z - 1].id < 1
+        {
+            return true;
+        }
 
-            // bottom left
-            if self.layers[idx].layer[x - 1][z + 1].id < 1
-            {
-                return true;
-            }
+        // right
+        if self.layers[y].layer[x + 1][z].id < 1
+        {
+            return true;
+        }
 
+        // bottom right
+        if self.layers[y].layer[x + 1][z + 1].id < 1
+        {
+            return true;
+        }
+        
+        // bottom
+        if self.layers[y].layer[x][z + 1].id < 1
+        {
+            return true;
+        }
+
+        // bottom left
+        if self.layers[y].layer[x - 1][z + 1].id < 1
+        {
+            return true;
         }
 
         return false;

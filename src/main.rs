@@ -98,7 +98,7 @@ fn main()
 
         ////////////////////
         // Update Game
-
+        chunk_test_scene.update(utils::micros_to_seconds(frame_tracker.get_delta_time()));
         //
 
         /////////////////////

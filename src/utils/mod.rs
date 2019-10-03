@@ -2,10 +2,10 @@
 #![allow(dead_code)]
 
 pub use self::frame_tracker::FrameTracker;
-pub use self::perlin_noise::PerlinNoise;
+pub use self::noise::OlcNoise;
 
 mod frame_tracker;
-mod perlin_noise;
+mod noise;
 
 use std::{time::Instant};
 extern crate nalgebra_glm as glm;
