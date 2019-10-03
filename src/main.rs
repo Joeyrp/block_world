@@ -7,6 +7,7 @@ extern crate nalgebra_glm as glm;
 extern crate image;
 
 use glium::{glutin, Surface};
+use glutin::dpi::LogicalPosition;
 
 // Local Modules
 pub mod utils;
@@ -37,6 +38,7 @@ fn main()
     let display = Gl { inner: Rc::new(glium::Display::new(wb, cb, &events_loop).unwrap()) } ;
 
     display.gl_window().window().set_title("Block World");
+    display.gl_window().window().set_position(LogicalPosition::new(400.0, 200.0));
 
     // Window info setup
     let mut window_info = WindowInfo::calculate_window_info(&display);
@@ -46,8 +48,9 @@ fn main()
     // Camera setup
     let mut camera = CameraFPS::new();
     camera.move_up(3.0);
-    camera.move_forward(5.0);
-    camera.apply_look_offset(0.0, -225.0);
+    camera.move_right(7.0);
+    camera.move_forward(10.0);
+    camera.apply_look_offset(200.0, 0.0);
 
     // The asset library for the game
     let mut asset_lib = AssetLib::new(&display);
@@ -55,7 +58,7 @@ fn main()
     // Scene for demoing/debugging game objects
     //let mut obj_demo_scene = ObjectDemoScene::new(&mut asset_lib, &display, &perspective).unwrap();
     let mut chunk_test_scene = ChunkDemoScene::new(&mut asset_lib, display.clone(), &perspective).unwrap();
-    chunk_test_scene.make_test_one();
+    chunk_test_scene.make_noise_test();
     
     
     ///////////////////////////////////////////////////////////
@@ -152,6 +155,10 @@ fn check_input(cam: &mut CameraFPS, window_info: &WindowInfo) -> bool
 {
     // Handle Mouse Movement
     let mouse_state = Mouse::get_state();
+
+    // TODO: Need a way to check if the button was just released
+    //       so we can reset the mouse position and not use
+    //       its offsets
     if !mouse_state.left_button
     {
         let delta_x = window_info.center.x - mouse_state.coords.x;

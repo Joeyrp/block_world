@@ -1,6 +1,7 @@
 
 use std::rc::Rc;
-use crate::{ graphics::Gl, utils::mat4_to_array, GridPlane, AssetLib, Flip, WorldChunk, game::world_chunk::Attr };
+use crate::{ graphics::Gl, utils::mat4_to_array, GridPlane, AssetLib, Flip, 
+                WorldChunk, game::world_chunk::Voxel, game::world_chunk::Attr, utils::OlcNoise };
 
 
 pub struct ChunkDemoScene
@@ -57,6 +58,52 @@ impl ChunkDemoScene
         }
 
         self.chunk.layers[15].layer[7][7].id = 0;
+    }
+
+    pub fn make_noise_test(self: &mut ChunkDemoScene)
+    {
+        // Sample noise to generate a random chunk
+        // Limit height by requiring larger sample values for higher blocks
+
+        // Hard code the seed to all zeros
+        let seed: [u8; 32] = [0; 32];
+
+        // The noise generator
+        let noise_machine = OlcNoise::new(32, 32, Some(seed));
+
+        // Only testing 2D noise to start
+        // In this test the chunk will be solid (no caves)
+        // but will have variable height
+        for x in 0..self.chunk.width
+        {
+            for z in 0..self.chunk.depth
+            {
+                let fx: f32 = (x as f32) / (self.chunk.width as f32);
+                let fz: f32 = (z as f32) / (self.chunk.depth as f32);
+                let height_scale = noise_machine.sample2D(fx, fz, 4, 0.2);
+                println!("Noise sample at ({}, {}): {}", fx, fz, height_scale);
+                
+                // use height_scale to lerp between 1 and 32
+                // a + x * (b - a)
+                // Obviously can be simplified
+                let final_height = (1.0 + height_scale * ((32 - 1) as f32)) as i32; 
+                //println!("height_scale: {} -- final_height: {}", height_scale, final_height);
+
+                // fill chunk column up to height
+                for i in 0..(final_height + 1)
+                {
+                    let value = match i
+                    {
+                        0...7 => 3,
+                        8...9 => 2,
+                        _ => 1
+                    };
+
+                    // heigth - i is a hack to put the grass on the top and the stone on the bottom of the chunk
+                    self.chunk.layers[i as usize].layer[x][z] = Voxel { id: value, visible: true };
+                }
+            }
+        }
     }
 
     pub fn update(self: &mut ChunkDemoScene, _delta_time: f64)
