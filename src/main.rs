@@ -17,20 +17,21 @@ use utils::FrameTracker;
 mod win_input;
 
 #[cfg(windows)]
-use win_input::{KeyBoard, KeyCode, Mouse};
+use win_input::{KeyCode, Mouse};
 
 mod graphics;
 use graphics::{Gl, WindowInfo, CameraFPS, GridPlane, Mesh, Program, Texture, Flip};
 
 mod game;
-use game::{AssetLib, /* ObjectDemoScene ,*/ ChunkDemoScene, WorldChunk};
+use game::{AssetLib, InputManager, /* ObjectDemoScene ,*/ ChunkDemoScene, WorldChunk};
 //
 
 struct GameData
 {
     pub remake_test_scene: bool,
     pub octaves: i32,
-    pub bias: f32
+    pub bias: f32,
+    pub random_seed: bool,
 }
 
 
@@ -63,14 +64,17 @@ fn main()
     // The asset library for the game
     let mut asset_lib = AssetLib::new(&display);
 
+    // Input manager
+    let mut input_manager = InputManager::new();
+
     // Data for use with the game
-    let mut game_data = GameData { remake_test_scene: false, octaves: 4, bias: 0.2 };
+    let mut game_data = GameData { remake_test_scene: false, octaves: 4, bias: 0.2, random_seed: false };
 
     // Scene for demoing/debugging game objects
     //let mut obj_demo_scene = ObjectDemoScene::new(&mut asset_lib, &display, &perspective).unwrap();
     let mut chunk_test_scene = ChunkDemoScene::new(&mut asset_lib, display.clone(), &perspective).unwrap();
 
-    chunk_test_scene.make_noise2D_test(game_data.octaves, game_data.bias);
+    chunk_test_scene.make_noise2D_test(game_data.octaves, game_data.bias, game_data.random_seed);
     
     
     ///////////////////////////////////////////////////////////
@@ -103,7 +107,7 @@ fn main()
         if window_focused
         {
             display.gl_window().window().hide_cursor(true);
-            closed = check_input(&mut camera, &window_info, &mut game_data);
+            closed = check_input(&mut camera, &window_info, &mut input_manager, &mut game_data);
         }
         else
         {
@@ -115,7 +119,7 @@ fn main()
         // Update Game
         if game_data.remake_test_scene
         {
-            chunk_test_scene.make_noise2D_test(game_data.octaves, game_data.bias);
+            chunk_test_scene.make_noise2D_test(game_data.octaves, game_data.bias, game_data.random_seed);
             game_data.remake_test_scene = false;
         }
         chunk_test_scene.update(utils::micros_to_seconds(frame_tracker.get_delta_time()));
@@ -168,7 +172,7 @@ fn main()
 //      Check Input Function
 ///////////////////////////////////////////////
 #[cfg(windows)]
-fn check_input(cam: &mut CameraFPS, window_info: &WindowInfo, game_data: &mut GameData) -> bool
+fn check_input(cam: &mut CameraFPS, window_info: &WindowInfo, input_manager: &mut InputManager, game_data: &mut GameData) -> bool
 {
     // Handle Mouse Movement
     let mouse_state = Mouse::get_state();
@@ -188,43 +192,43 @@ fn check_input(cam: &mut CameraFPS, window_info: &WindowInfo, game_data: &mut Ga
     //  
 
     // Keyboard input
-    if KeyBoard::key_down(KeyCode::Escape)
+    if input_manager.key_down(KeyCode::Escape)
     {
         return true;
     }
 
-    if KeyBoard::key_down(KeyCode::W)
+    if input_manager.key_down(KeyCode::W)
     {
         cam.move_forward(-0.05);
     }
 
-    if KeyBoard::key_down(KeyCode::S)
+    if input_manager.key_down(KeyCode::S)
     {
         cam.move_forward(0.05);
     }
 
-    if KeyBoard::key_down(KeyCode::A)
+    if input_manager.key_down(KeyCode::A)
     {
         cam.move_right(-0.05);
     }
 
-    if KeyBoard::key_down(KeyCode::D)
+    if input_manager.key_down(KeyCode::D)
     {
         cam.move_right(0.05);
     }
 
-    if KeyBoard::key_down(KeyCode::E)
+    if input_manager.key_down(KeyCode::E)
     {
         cam.move_up(0.05);
     }
 
-    if KeyBoard::key_down(KeyCode::Q)
+    if input_manager.key_down(KeyCode::Q)
     {
         cam.move_up(-0.05);
     }
 
     // Game data
-    if KeyBoard::key_pressed(KeyCode::SPACE)
+    if input_manager.key_pressed(KeyCode::SPACE)
     {
         game_data.octaves += 1;
         if game_data.octaves > 6
@@ -235,15 +239,27 @@ fn check_input(cam: &mut CameraFPS, window_info: &WindowInfo, game_data: &mut Ga
         game_data.remake_test_scene = true;
     }
 
-    if KeyBoard::key_down(KeyCode::R)
+    if input_manager.key_pressed(KeyCode::T)
     {
-        game_data.bias += 0.2;
+        game_data.random_seed = true;
         game_data.remake_test_scene = true;
     }
 
-    if KeyBoard::key_down(KeyCode::F)
+    if input_manager.key_pressed(KeyCode::Y)
     {
-        game_data.bias -= 0.2;
+        game_data.random_seed = false;
+        game_data.remake_test_scene = true;
+    }
+
+    if input_manager.key_down(KeyCode::R)
+    {
+        game_data.bias += 0.05;
+        game_data.remake_test_scene = true;
+    }
+
+    if input_manager.key_down(KeyCode::F)
+    {
+        game_data.bias -= 0.05;
 
         if game_data.bias < 0.2
         {

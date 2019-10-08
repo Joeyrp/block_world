@@ -63,7 +63,7 @@ impl ChunkDemoScene
     }
 
     #[allow(non_snake_case)]
-    pub fn make_noise2D_test(self: &mut ChunkDemoScene, octaves: i32, bias: f32)
+    pub fn make_noise2D_test(self: &mut ChunkDemoScene, octaves: i32, bias: f32, use_random_seed: bool)
     {
         //println!("Generating chunk from 2D noise");
         //println!("Octaves: {}, Bias: {}", octaves, bias);
@@ -73,10 +73,15 @@ impl ChunkDemoScene
         self.chunk.make_empty();
 
         // Hard code the seed to all zeros
-        let seed: [u8; 32] = [0; 32];
+        let mut seed: Option<[u8; 32]> = Some([0; 32]);
+
+        if use_random_seed
+        {
+            seed = None;
+        }
 
         // The noise generator
-        let noise_machine = OlcNoise::new(32, 32, Some(seed));
+        let noise_machine = OlcNoise::new(self.chunk.width as i32, self.chunk.depth as i32, seed);
 
         // Only testing 2D noise to start
         // In this test the chunk will be solid (no caves)
@@ -113,7 +118,13 @@ impl ChunkDemoScene
             }
         }
 
-        println!("New chunk generated with num octaves: {}, bias: {}", octaves, bias);
+        let mut seed_out = String::from("Default - All Zeros");
+        if use_random_seed
+        {
+            seed_out = String::from("Random");
+        }
+
+        println!("\nNew chunk generated with seed: {}, num octaves: {}, bias: {}", seed_out, octaves, bias);
         self.force_chunk_regen = true;
     }
 

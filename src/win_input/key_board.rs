@@ -3,6 +3,7 @@
 use winapi::um::winuser;
 
 #[allow(dead_code)]
+#[derive(Copy, Clone)]
 pub enum KeyCode
 {
     NUM0 = '0' as isize,
