@@ -93,9 +93,17 @@ impl WorldChunk
         WorldChunk { width, height, depth, layers, instance_buff: None }
     }
 
-    pub fn get_instance_buffer(self: &mut WorldChunk, display: &glium::Display) -> Rc<glium::VertexBuffer<Attr>>
+    pub fn make_empty(self: &mut WorldChunk)
     {
-        if self.instance_buff.is_none()
+        for l in 0..self.layers.len()
+        {
+            self.layers[l].fill_with(0);
+        }
+    }
+
+    pub fn get_instance_buffer(self: &mut WorldChunk, display: &glium::Display, force_regen: bool) -> Rc<glium::VertexBuffer<Attr>>
+    {
+        if self.instance_buff.is_none() || force_regen
         {
             self.gen_instance_buffer(display, true);
         }
@@ -156,7 +164,7 @@ impl WorldChunk
 
             if debug_output
             {
-                println!("Chunk Dimensions ({}x{}x{})\ntotal blocks: {}\nskipped blocks: {}\nrendering {} blocks", 
+                println!("Chunk Dimensions ({}x{}x{})\ntotal visible blocks: {}\nskipped blocks: {}\nrendering {} blocks", 
                         self.width, self.height, self.depth, total_blocks, skipped_blocks, data.len());
             }
 

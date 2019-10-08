@@ -10,7 +10,8 @@ pub struct ChunkDemoScene
     grid: GridPlane,
     chunk: WorldChunk,
     perspective: glm::Mat4,
-    chunk_instance: Option<Rc<glium::VertexBuffer<Attr>>>
+    chunk_instance: Option<Rc<glium::VertexBuffer<Attr>>>,
+    force_chunk_regen: bool
 }
 
 impl ChunkDemoScene
@@ -28,7 +29,8 @@ impl ChunkDemoScene
         let mut grid = GridPlane::new(&display, [0.75, 0.75, 0.75], 1.0, 20, 20).unwrap();
         grid.projection = *perspective;
 
-        Ok( ChunkDemoScene { gl: display.clone(), grid, chunk: WorldChunk::new(32, 32, 32), perspective: *perspective, chunk_instance: None })
+        Ok( ChunkDemoScene { gl: display.clone(), grid, chunk: WorldChunk::new(32, 32, 32), 
+                            perspective: *perspective, chunk_instance: None, force_chunk_regen: false })
     }
 
     pub fn make_chunk_single_layer(self: &mut ChunkDemoScene)
@@ -60,10 +62,15 @@ impl ChunkDemoScene
         self.chunk.layers[15].layer[7][7].id = 0;
     }
 
-    pub fn make_noise_test(self: &mut ChunkDemoScene)
+    #[allow(non_snake_case)]
+    pub fn make_noise2D_test(self: &mut ChunkDemoScene, octaves: i32, bias: f32)
     {
+        //println!("Generating chunk from 2D noise");
+        //println!("Octaves: {}, Bias: {}", octaves, bias);
         // Sample noise to generate a random chunk
         // Limit height by requiring larger sample values for higher blocks
+
+        self.chunk.make_empty();
 
         // Hard code the seed to all zeros
         let seed: [u8; 32] = [0; 32];
@@ -78,10 +85,11 @@ impl ChunkDemoScene
         {
             for z in 0..self.chunk.depth
             {
-                let fx: f32 = (x as f32) / (self.chunk.width as f32);
-                let fz: f32 = (z as f32) / (self.chunk.depth as f32);
-                let height_scale = noise_machine.sample2D(fx, fz, 4, 0.2);
-                println!("Noise sample at ({}, {}): {}", fx, fz, height_scale);
+                // olc noise does not use x and y between 0 and 1
+               // let fx: f32 = (x as f32) / (self.chunk.width as f32);
+                //let fz: f32 = (z as f32) / (self.chunk.depth as f32);
+                let height_scale = noise_machine.sample2D(x as i32, z as i32, octaves, bias);
+                //println!("Noise sample at ({}, {}): {}", x, z, height_scale);
                 
                 // use height_scale to lerp between 1 and 32
                 // a + x * (b - a)
@@ -104,13 +112,17 @@ impl ChunkDemoScene
                 }
             }
         }
+
+        println!("New chunk generated with num octaves: {}, bias: {}", octaves, bias);
+        self.force_chunk_regen = true;
     }
 
     pub fn update(self: &mut ChunkDemoScene, _delta_time: f64)
     {
         // The instance buffer must be created before drawing begins
         // so this cannot happen in render_scene()
-        self.chunk_instance = Some(self.chunk.get_instance_buffer(&self.gl));
+        self.chunk_instance = Some(self.chunk.get_instance_buffer(&self.gl, self.force_chunk_regen));
+        self.force_chunk_regen = false;
     }
 
     pub fn render_scene(self: &mut ChunkDemoScene, assets: &mut AssetLib, 

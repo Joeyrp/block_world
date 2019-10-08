@@ -26,6 +26,14 @@ mod game;
 use game::{AssetLib, /* ObjectDemoScene ,*/ ChunkDemoScene, WorldChunk};
 //
 
+struct GameData
+{
+    pub remake_test_scene: bool,
+    pub octaves: i32,
+    pub bias: f32
+}
+
+
 ///////////////////////////////////////////////
 //      Main Function
 ///////////////////////////////////////////////
@@ -55,10 +63,14 @@ fn main()
     // The asset library for the game
     let mut asset_lib = AssetLib::new(&display);
 
+    // Data for use with the game
+    let mut game_data = GameData { remake_test_scene: false, octaves: 4, bias: 0.2 };
+
     // Scene for demoing/debugging game objects
     //let mut obj_demo_scene = ObjectDemoScene::new(&mut asset_lib, &display, &perspective).unwrap();
     let mut chunk_test_scene = ChunkDemoScene::new(&mut asset_lib, display.clone(), &perspective).unwrap();
-    chunk_test_scene.make_noise_test();
+
+    chunk_test_scene.make_noise2D_test(game_data.octaves, game_data.bias);
     
     
     ///////////////////////////////////////////////////////////
@@ -91,7 +103,7 @@ fn main()
         if window_focused
         {
             display.gl_window().window().hide_cursor(true);
-            closed = check_input(&mut camera, &window_info);
+            closed = check_input(&mut camera, &window_info, &mut game_data);
         }
         else
         {
@@ -101,6 +113,11 @@ fn main()
 
         ////////////////////
         // Update Game
+        if game_data.remake_test_scene
+        {
+            chunk_test_scene.make_noise2D_test(game_data.octaves, game_data.bias);
+            game_data.remake_test_scene = false;
+        }
         chunk_test_scene.update(utils::micros_to_seconds(frame_tracker.get_delta_time()));
         //
 
@@ -151,7 +168,7 @@ fn main()
 //      Check Input Function
 ///////////////////////////////////////////////
 #[cfg(windows)]
-fn check_input(cam: &mut CameraFPS, window_info: &WindowInfo) -> bool
+fn check_input(cam: &mut CameraFPS, window_info: &WindowInfo, game_data: &mut GameData) -> bool
 {
     // Handle Mouse Movement
     let mouse_state = Mouse::get_state();
@@ -204,6 +221,36 @@ fn check_input(cam: &mut CameraFPS, window_info: &WindowInfo) -> bool
     if KeyBoard::key_is_pressed(KeyCode::Q)
     {
         cam.move_up(-0.05);
+    }
+
+    // Game data
+    if KeyBoard::key_is_pressed(KeyCode::SPACE)
+    {
+        game_data.octaves += 1;
+        if game_data.octaves > 6
+        {
+            game_data.octaves = 1;
+        }
+
+        game_data.remake_test_scene = true;
+    }
+
+    if KeyBoard::key_is_pressed(KeyCode::R)
+    {
+        game_data.bias += 0.2;
+        game_data.remake_test_scene = true;
+    }
+
+    if KeyBoard::key_is_pressed(KeyCode::F)
+    {
+        game_data.bias -= 0.2;
+
+        if game_data.bias < 0.2
+        {
+            game_data.bias = 0.2;
+        }
+
+        game_data.remake_test_scene = true;
     }
 
     return false;
