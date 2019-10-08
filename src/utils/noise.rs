@@ -25,9 +25,9 @@ impl OlcNoise
         let mut rng: StdRng = SeedableRng::from_seed(seed);
         let size: usize = (width * height) as usize;
         let mut seed2D: Vec<f32> = vec![0.0; size];
-        for i in 0..width
+        for i in 0..size
         {
-            // TODO: This is supposed to be a value between 0 and 1
+            // Generate a random value between 0 and 1
             let value = rng.gen::<f32>();
             seed2D[i as usize] = value;
         }
@@ -37,37 +37,8 @@ impl OlcNoise
 
     pub fn sample2D(self: &OlcNoise, x: i32, y: i32, octaves: i32, bias: f32) -> f32
     {
-        // C++ code from OneLonerCoder
-        // ========================================
-        // float fNoise = 0.0f;
-        // float fScaleAcc = 0.0f;
-        // float fScale = 1.0f;
-
-        // for (int o = 0; o < nOctaves; o++)
-        // {
-        //     int nPitch = nWidth >> o;
-        //     int nSampleX1 = (x / nPitch) * nPitch;
-        //     int nSampleY1 = (y / nPitch) * nPitch;
-            
-        //     int nSampleX2 = (nSampleX1 + nPitch) % nWidth;					
-        //     int nSampleY2 = (nSampleY1 + nPitch) % nWidth;
-
-        //     float fBlendX = (float)(x - nSampleX1) / (float)nPitch;
-        //     float fBlendY = (float)(y - nSampleY1) / (float)nPitch;
-
-        //     float fSampleT = (1.0f - fBlendX) * fSeed[nSampleY1 * nWidth + nSampleX1] + fBlendX * fSeed[nSampleY1 * nWidth + nSampleX2];
-        //     float fSampleB = (1.0f - fBlendX) * fSeed[nSampleY2 * nWidth + nSampleX1] + fBlendX * fSeed[nSampleY2 * nWidth + nSampleX2];
-
-        //     fScaleAcc += fScale;
-        //     fNoise += (fBlendY * (fSampleB - fSampleT) + fSampleT) * fScale;
-        //     fScale = fScale / fBias;
-        // }
-
-        // // Scale to seed range
-        // fOutput[y * nWidth + x] = fNoise / fScaleAcc;
-
-        // TODO: Sample_x1 and sample_y1 seem to always be zero
-        //         run OLCs code and debug
+        // Algorithm by OneLoneCoder
+        // https://github.com/OneLoneCoder/videos/blob/master/OneLoneCoder_PerlinNoise.cpp
 
         let mut noise: f32 = 0.0;
         let mut scale_accel: f32 = 0.0;

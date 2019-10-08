@@ -68,12 +68,27 @@ pub enum KeyCode
 
 pub struct KeyBoard
 {
-
 }
 
 impl KeyBoard
 {
-    pub fn key_is_pressed(key: KeyCode) -> bool
+    pub fn key_pressed(key: KeyCode) -> bool
+    {
+        use winapi::um::winuser::{ GetAsyncKeyState };
+        let mut state = false;
+
+        unsafe
+        {
+            if GetAsyncKeyState(key as i32) as u32 & 0x01 != 0
+            {
+                state = true;
+            }
+        }
+
+        return state;
+    }
+
+    pub fn key_down(key: KeyCode) -> bool
     {
         use winapi::um::winuser::{ GetAsyncKeyState };
         let mut state = false;

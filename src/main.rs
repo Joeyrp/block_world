@@ -188,43 +188,43 @@ fn check_input(cam: &mut CameraFPS, window_info: &WindowInfo, game_data: &mut Ga
     //  
 
     // Keyboard input
-    if KeyBoard::key_is_pressed(KeyCode::Escape)
+    if KeyBoard::key_down(KeyCode::Escape)
     {
         return true;
     }
 
-    if KeyBoard::key_is_pressed(KeyCode::W)
+    if KeyBoard::key_down(KeyCode::W)
     {
         cam.move_forward(-0.05);
     }
 
-    if KeyBoard::key_is_pressed(KeyCode::S)
+    if KeyBoard::key_down(KeyCode::S)
     {
         cam.move_forward(0.05);
     }
 
-    if KeyBoard::key_is_pressed(KeyCode::A)
+    if KeyBoard::key_down(KeyCode::A)
     {
         cam.move_right(-0.05);
     }
 
-    if KeyBoard::key_is_pressed(KeyCode::D)
+    if KeyBoard::key_down(KeyCode::D)
     {
         cam.move_right(0.05);
     }
 
-    if KeyBoard::key_is_pressed(KeyCode::E)
+    if KeyBoard::key_down(KeyCode::E)
     {
         cam.move_up(0.05);
     }
 
-    if KeyBoard::key_is_pressed(KeyCode::Q)
+    if KeyBoard::key_down(KeyCode::Q)
     {
         cam.move_up(-0.05);
     }
 
     // Game data
-    if KeyBoard::key_is_pressed(KeyCode::SPACE)
+    if KeyBoard::key_pressed(KeyCode::SPACE)
     {
         game_data.octaves += 1;
         if game_data.octaves > 6
@@ -235,13 +235,13 @@ fn check_input(cam: &mut CameraFPS, window_info: &WindowInfo, game_data: &mut Ga
         game_data.remake_test_scene = true;
     }
 
-    if KeyBoard::key_is_pressed(KeyCode::R)
+    if KeyBoard::key_down(KeyCode::R)
     {
         game_data.bias += 0.2;
         game_data.remake_test_scene = true;
     }
 
-    if KeyBoard::key_is_pressed(KeyCode::F)
+    if KeyBoard::key_down(KeyCode::F)
     {
         game_data.bias -= 0.2;
 
