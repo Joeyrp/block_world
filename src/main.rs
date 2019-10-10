@@ -31,7 +31,7 @@ struct GameData
     pub remake_test_scene: bool,
     pub octaves: i32,
     pub bias: f32,
-    pub random_seed: bool,
+    pub seed: Option<[u8; 32]>
 }
 
 
@@ -56,7 +56,7 @@ fn main()
 
     // Camera setup
     let mut camera = CameraFPS::new();
-    camera.move_up(3.0);
+    camera.move_up(35.0);
     camera.move_right(7.0);
     camera.move_forward(10.0);
     camera.apply_look_offset(200.0, 0.0);
@@ -68,13 +68,13 @@ fn main()
     let mut input_manager = InputManager::new();
 
     // Data for use with the game
-    let mut game_data = GameData { remake_test_scene: false, octaves: 4, bias: 0.2, random_seed: false };
+    let mut game_data = GameData { remake_test_scene: false, octaves: 4, bias: 0.2, seed: Some([0; 32]) };
 
     // Scene for demoing/debugging game objects
     //let mut obj_demo_scene = ObjectDemoScene::new(&mut asset_lib, &display, &perspective).unwrap();
     let mut chunk_test_scene = ChunkDemoScene::new(&mut asset_lib, display.clone(), &perspective).unwrap();
 
-    chunk_test_scene.make_noise2D_test(game_data.octaves, game_data.bias, game_data.random_seed);
+    chunk_test_scene.make_noise2D_test(game_data.octaves, game_data.bias, game_data.seed);
     
     
     ///////////////////////////////////////////////////////////
@@ -90,6 +90,7 @@ fn main()
         //////////////////////
         //  Frame Timer
         frame_tracker.update();
+        let delta_time = utils::micros_to_seconds(frame_tracker.get_delta_time());
 
         //////////////////////
         // Info in window title
@@ -107,7 +108,7 @@ fn main()
         if window_focused
         {
             display.gl_window().window().hide_cursor(true);
-            closed = check_input(&mut camera, &window_info, &mut input_manager, &mut game_data);
+            closed = check_input(delta_time, &mut camera, &window_info, &mut input_manager, &mut game_data);
         }
         else
         {
@@ -119,10 +120,10 @@ fn main()
         // Update Game
         if game_data.remake_test_scene
         {
-            chunk_test_scene.make_noise2D_test(game_data.octaves, game_data.bias, game_data.random_seed);
+            chunk_test_scene.make_noise2D_test(game_data.octaves, game_data.bias, game_data.seed);
             game_data.remake_test_scene = false;
         }
-        chunk_test_scene.update(utils::micros_to_seconds(frame_tracker.get_delta_time()));
+        chunk_test_scene.update(delta_time);
         //
 
         /////////////////////
@@ -172,7 +173,7 @@ fn main()
 //      Check Input Function
 ///////////////////////////////////////////////
 #[cfg(windows)]
-fn check_input(cam: &mut CameraFPS, window_info: &WindowInfo, input_manager: &mut InputManager, game_data: &mut GameData) -> bool
+fn check_input(dt: f64, cam: &mut CameraFPS, window_info: &WindowInfo, input_manager: &mut InputManager, game_data: &mut GameData) -> bool
 {
     // Handle Mouse Movement
     let mouse_state = Mouse::get_state();
@@ -191,6 +192,8 @@ fn check_input(cam: &mut CameraFPS, window_info: &WindowInfo, input_manager: &mu
     }
     //  
 
+    let speed = 15.0 * dt as f32;
+
     // Keyboard input
     if input_manager.key_down(KeyCode::Escape)
     {
@@ -199,32 +202,32 @@ fn check_input(cam: &mut CameraFPS, window_info: &WindowInfo, input_manager: &mu
 
     if input_manager.key_down(KeyCode::W)
     {
-        cam.move_forward(-0.05);
+        cam.move_forward(-speed);
     }
 
     if input_manager.key_down(KeyCode::S)
     {
-        cam.move_forward(0.05);
+        cam.move_forward(speed);
     }
 
     if input_manager.key_down(KeyCode::A)
     {
-        cam.move_right(-0.05);
+        cam.move_right(-speed);
     }
 
     if input_manager.key_down(KeyCode::D)
     {
-        cam.move_right(0.05);
+        cam.move_right(speed);
     }
 
     if input_manager.key_down(KeyCode::E)
     {
-        cam.move_up(0.05);
+        cam.move_up(speed);
     }
 
     if input_manager.key_down(KeyCode::Q)
     {
-        cam.move_up(-0.05);
+        cam.move_up(-speed);
     }
 
     // Game data
@@ -241,13 +244,19 @@ fn check_input(cam: &mut CameraFPS, window_info: &WindowInfo, input_manager: &mu
 
     if input_manager.key_pressed(KeyCode::T)
     {
-        game_data.random_seed = true;
+        let mut seed: [u8; 32] = [0; 32];
+        for i in 0..32
+        {
+            seed[i] = rand::random::<u8>();
+        }
+        
+        game_data.seed = Some(seed);
         game_data.remake_test_scene = true;
     }
 
     if input_manager.key_pressed(KeyCode::Y)
     {
-        game_data.random_seed = false;
+        game_data.seed = Some([0; 32]);
         game_data.remake_test_scene = true;
     }
 

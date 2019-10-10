@@ -11,7 +11,7 @@ pub struct ChunkDemoScene
     chunk: WorldChunk,
     perspective: glm::Mat4,
     chunk_instance: Option<Rc<glium::VertexBuffer<Attr>>>,
-    force_chunk_regen: bool
+    force_chunk_regen: bool,
 }
 
 impl ChunkDemoScene
@@ -29,7 +29,7 @@ impl ChunkDemoScene
         let mut grid = GridPlane::new(&display, [0.75, 0.75, 0.75], 1.0, 20, 20).unwrap();
         grid.projection = *perspective;
 
-        Ok( ChunkDemoScene { gl: display.clone(), grid, chunk: WorldChunk::new(32, 32, 32), 
+        Ok( ChunkDemoScene { gl: display.clone(), grid, chunk: WorldChunk::new(64, 32, 64), 
                             perspective: *perspective, chunk_instance: None, force_chunk_regen: false })
     }
 
@@ -63,7 +63,7 @@ impl ChunkDemoScene
     }
 
     #[allow(non_snake_case)]
-    pub fn make_noise2D_test(self: &mut ChunkDemoScene, octaves: i32, bias: f32, use_random_seed: bool)
+    pub fn make_noise2D_test(self: &mut ChunkDemoScene, octaves: i32, bias: f32, seed: Option<[u8; 32]>)
     {
         //println!("Generating chunk from 2D noise");
         //println!("Octaves: {}, Bias: {}", octaves, bias);
@@ -72,16 +72,9 @@ impl ChunkDemoScene
 
         self.chunk.make_empty();
 
-        // Hard code the seed to all zeros
-        let mut seed: Option<[u8; 32]> = Some([0; 32]);
-
-        if use_random_seed
-        {
-            seed = None;
-        }
-
         // The noise generator
-        let noise_machine = OlcNoise::new(self.chunk.width as i32, self.chunk.depth as i32, seed);
+        //let noise_machine = OlcNoise::new(self.chunk.width as i32, self.chunk.depth as i32, seed);
+        let noise_machine = OlcNoise::new(32 as i32, 32 as i32, seed);
 
         // Only testing 2D noise to start
         // In this test the chunk will be solid (no caves)
@@ -96,10 +89,10 @@ impl ChunkDemoScene
                 let height_scale = noise_machine.sample2D(x as i32, z as i32, octaves, bias);
                 //println!("Noise sample at ({}, {}): {}", x, z, height_scale);
                 
-                // use height_scale to lerp between 1 and 32
+                // use height_scale to lerp between 1 and the chunk height
                 // a + x * (b - a)
                 // Obviously can be simplified
-                let final_height = (1.0 + height_scale * ((32 - 1) as f32)) as i32; 
+                let final_height = (1.0 + height_scale * ((self.chunk.height - 1) as f32)) as i32; 
                 //println!("height_scale: {} -- final_height: {}", height_scale, final_height);
 
                 // fill chunk column up to height
@@ -118,13 +111,7 @@ impl ChunkDemoScene
             }
         }
 
-        let mut seed_out = String::from("Default - All Zeros");
-        if use_random_seed
-        {
-            seed_out = String::from("Random");
-        }
-
-        println!("\nNew chunk generated with seed: {}, num octaves: {}, bias: {}", seed_out, octaves, bias);
+        println!("\nNew chunk generated with seed: {:?}\nnum octaves: {}, bias: {}", seed, octaves, bias);
         self.force_chunk_regen = true;
     }
 

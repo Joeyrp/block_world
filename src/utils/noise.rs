@@ -46,13 +46,16 @@ impl OlcNoise
 
         let width = self.width;
 
+        let x = x % self.width;
+        let y = y % self.height;
+
         for o in 0..octaves
         {
             let pitch: i32 = width >> o;
             let sample_x1: i32 = (x / pitch) * pitch;
             let sample_y1: i32 = (y / pitch) * pitch;
 
-           // println!("x: {}, y: {}, pitch: {}", x, y, pitch);
+           // println!("x: {}, y: {}, width: {}, pitch: {}, octave: {}", x, y, width, pitch, o);
 
             // if sample_y1 > 0 || sample_x1 > 0
             // {
@@ -76,10 +79,14 @@ impl OlcNoise
             let idx1 = (sample_y1 * width + sample_x1) as usize;
             let idx2 = (sample_y1 * width + sample_x2) as usize;
 
+           // println!("Idx1: {}, Idx2: {}", idx1, idx2);
+
             let sample_t: f32 = (1.0 - blend_x) * self.seed2D[idx1] + blend_x * self.seed2D[idx2];
 
             let idx3 = (sample_y2 * width + sample_x1) as usize;
             let idx4 = (sample_y2 * width + sample_x2) as usize;
+
+            //println!("Idx3: {}, Idx4: {}", idx3, idx4);
 
             let sample_b: f32 = (1.0 - blend_x) * self.seed2D[idx3] + blend_x * self.seed2D[idx4];
 
