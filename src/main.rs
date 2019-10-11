@@ -84,7 +84,7 @@ fn main()
     //let mut obj_demo_scene = ObjectDemoScene::new(&mut asset_lib, &display, &perspective).unwrap();
     let mut chunk_test_scene = ChunkDemoScene::new(&mut asset_lib, display.clone(), &perspective).unwrap();
 
-    chunk_test_scene.make_simplex_noise2D(0.01, None);
+    chunk_test_scene.make_simplex_noise2D(0.01, game_data.seed);
     
     
     ///////////////////////////////////////////////////////////
@@ -216,7 +216,12 @@ fn check_input(dt: f64, cam: &mut CameraFPS, window_info: &WindowInfo, input_man
     }
     //  
 
-    let speed = 15.0 * dt as f32;
+    let mut speed = 15.0 * dt as f32;
+
+    if input_manager.key_down(KeyCode::LSHIFT)
+    {
+        speed = 30.0 * dt as f32;
+    }
 
     // reprint help messsage
     if input_manager.key_pressed(KeyCode::F1)
@@ -377,5 +382,5 @@ fn print_controls()
 {
     println!("\nDemo Controls:\n\tWASD: Move\n\tE: Move Up\n\tQ: Move Down\n\tMouse Move: Look\n\t1, 2: Change Noise Type (OLC), (Simplex)");
     println!("\tR: Adjust Bias/Zoom Factor Up\n\tF: Adjust Bias/Zoom Factor Down\n\tSPACE: Increase Octave");
-    println!("\tT: Use Default Seed\n\tY: Use New Random Seed\n\tF1: Reprint this message\n");
+    println!("\tY: Use Default Seed\n\tT: Use New Random Seed\n\tSHIFT: Move and Adjust Faster\n\tF1: Reprint this message\n");
 }

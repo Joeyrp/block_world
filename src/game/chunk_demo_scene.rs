@@ -26,7 +26,7 @@ impl ChunkDemoScene
         assets.get_texture("assets/textures/Stone.png", Flip::NONE)?;
         assets.get_program("Blocks_instanced", "assets/shaders/block_instanced.vert", "assets/shaders/block.frag")?;
 
-        let mut grid = GridPlane::new(&display, [0.75, 0.75, 0.75], 1.0, 20, 20).unwrap();
+        let mut grid = GridPlane::new(&display, [0.75, 0.75, 0.75], 1.0, 1000, 1000).unwrap();
         grid.projection = *perspective;
 
         Ok( ChunkDemoScene { gl: display.clone(), grid, chunk: WorldChunk::new(64, 32, 64), 
@@ -120,7 +120,7 @@ impl ChunkDemoScene
         self.chunk.make_empty();
 
         // The noise generator
-        let noise_machine = SimplexNoise::new();
+        let noise_machine = SimplexNoise::new(seed);
 
         // Only testing 2D noise to start
         // In this test the chunk will be solid (no caves)

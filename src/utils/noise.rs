@@ -18,7 +18,7 @@ impl OlcNoise
         let seed = match seed
         {
             Some(s) => s,
-            None => OlcNoise::get_system_seed()
+            None => get_system_seed()
         };
 
         // Generate the 2D Noise Seed
@@ -35,16 +35,7 @@ impl OlcNoise
         OlcNoise { width, height, seed2D, rng  }
     }
 
-    fn get_system_seed() -> [u8; 32]
-    {
-        let mut seed: [u8; 32] = [0; 32];
-        for i in 0..32
-        {
-            seed[i] = rand::random::<u8>();
-        }
 
-        return seed;
-    }
 
     pub fn sample2D(self: &OlcNoise, x: i32, y: i32, octaves: i32, bias: f32) -> f32
     {
@@ -116,10 +107,9 @@ pub struct SimplexNoise
 
 impl SimplexNoise
 {
-    pub fn new() -> SimplexNoise
+    pub fn new(seed: Option<[u8; 32]>) -> SimplexNoise
     {
-        // TODO: add in the ability to shuffle this data based on a given seed
-        let perm = [151,160,137,91,90,15,
+        let mut perm = [151,160,137,91,90,15,
                     131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,
                     190, 6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33,
                     88,237,149,56,87,174,20,125,136,171,168, 68,175,74,165,71,134,139,48,27,166,
@@ -146,7 +136,36 @@ impl SimplexNoise
                     49,192,214, 31,181,199,106,157,184, 84,204,176,115,121,50,45,127, 4,150,254,
                     138,236,205,93,222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180 ];
 
+        let seed = match seed
+        {
+            Some(s) => s,
+            None => get_system_seed()
+        };
+
+        SimplexNoise::shuffle_perm(&mut perm, seed);
+
         SimplexNoise { perm }
+    }
+
+    fn shuffle_perm(perm: &mut [i32; 512], seed: [u8; 32])
+    {
+        let num_shuffles = 2048;
+        let mut rng: StdRng = SeedableRng::from_seed(seed);
+
+        for _ in 0..num_shuffles
+        {
+            let i = (rng.gen::<u32>() % 512) as usize;
+            let j = (rng.gen::<u32>() % 512) as usize;
+
+            if i == j
+            {
+                continue;
+            }
+
+            let temp = perm[i];
+            perm[i] = perm[j];
+            perm[j] = temp;
+        }
     }
 
 // Note: C implementation by Stefan Gustavson (stegu@itn.liu.se)
@@ -269,3 +288,13 @@ float  SimplexNoise1234::grad( int hash, float x, float y ) {
     }
 }
 
+fn get_system_seed() -> [u8; 32]
+{
+    let mut seed: [u8; 32] = [0; 32];
+    for i in 0..32
+    {
+        seed[i] = rand::random::<u8>();
+    }
+
+    return seed;
+}
