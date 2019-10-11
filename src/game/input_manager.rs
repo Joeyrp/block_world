@@ -1,6 +1,7 @@
 
 use crate::win_input::{KeyBoard, KeyCode};
 
+#[allow(dead_code)]
 pub struct InputManager
 {
     key_states: [bool; 256],
@@ -17,6 +18,7 @@ impl InputManager
     {
         KeyBoard::key_down(key)
     }
+
 
     pub fn key_pressed(self: &mut InputManager, key: KeyCode) -> bool
     {

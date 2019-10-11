@@ -3,6 +3,7 @@
 
 pub use self::frame_tracker::FrameTracker;
 pub use self::noise::OlcNoise;
+pub use self::noise::SimplexNoise;
 
 mod frame_tracker;
 mod noise;

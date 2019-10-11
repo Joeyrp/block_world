@@ -1,7 +1,7 @@
 
 use std::rc::Rc;
 use crate::{ graphics::Gl, utils::mat4_to_array, GridPlane, AssetLib, Flip, 
-                WorldChunk, game::world_chunk::Voxel, game::world_chunk::Attr, utils::OlcNoise };
+                WorldChunk, game::world_chunk::Voxel, game::world_chunk::Attr, utils::OlcNoise, utils::SimplexNoise };
 
 
 pub struct ChunkDemoScene
@@ -111,7 +111,62 @@ impl ChunkDemoScene
             }
         }
 
-        println!("\nNew chunk generated with seed: {:?}\nnum octaves: {}, bias: {}", seed, octaves, bias);
+        println!("\nNew chunk generated with OLC Noise:\nseed: {:?}\nnum octaves: {}, bias: {}", seed, octaves, bias);
+        self.force_chunk_regen = true;
+    }
+
+    pub fn make_simplex_noise2D(self: &mut ChunkDemoScene, zoom_factor: f32, seed: Option<[u8; 32]>)
+    {
+        self.chunk.make_empty();
+
+        // The noise generator
+        let noise_machine = SimplexNoise::new();
+
+        // Only testing 2D noise to start
+        // In this test the chunk will be solid (no caves)
+        // but will have variable height
+        for x in 0..self.chunk.width
+        {
+            for z in 0..self.chunk.depth
+            {
+                // Zoom into the noise by scaling down the x and z
+                // (or if zoom_factor is large than 1 it will scale up - resulting in chaotic noise)
+                let xf = x as f32 * zoom_factor;
+                let zf = z as f32 * zoom_factor;
+
+                let height_scale = noise_machine.noise_2D(xf, zf);
+                
+                
+                // Result of the noise is between -1 and 1. Need to scale it to be between
+                // 0 and 1:
+                // NewValue = (((OldValue - OldMin) * (NewMax - NewMin)) / (OldMax - OldMin)) + NewMin
+
+                //  or split into 3 lines:
+                // OldRange = (OldMax - OldMin)  
+                // NewRange = (NewMax - NewMin)  
+                // NewValue = (((OldValue - OldMin) * NewRange) / OldRange) + NewMin
+                let old_range = 2.0;
+                let new_range = 1.0;
+                let height_scale = ((height_scale + 1.0) * new_range) / old_range;
+                let final_height = (1.0 + height_scale * ((self.chunk.height - 1) as f32)) as i32;
+                //println!("height_scale: {} -- final_height: {}", height_scale, final_height);
+
+                // fill chunk column up to height
+                for i in 0..(final_height + 1)
+                {
+                    let value = match i
+                    {
+                        0...7 => 3,
+                        8...9 => 2,
+                        _ => 1
+                    };
+
+                    // heigth - i is a hack to put the grass on the top and the stone on the bottom of the chunk
+                    self.chunk.layers[i as usize].layer[x][z] = Voxel { id: value, visible: true };
+                }
+            }
+        }
+        println!("\nNew chunk generated with Simplex Noise:\n Seed: {:?}\nZoom Factor: {}", seed, zoom_factor);
         self.force_chunk_regen = true;
     }
 
