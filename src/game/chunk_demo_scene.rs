@@ -26,7 +26,7 @@ impl ChunkDemoScene
         assets.get_texture("assets/textures/Stone.png", Flip::NONE)?;
         assets.get_program("Blocks_instanced", "assets/shaders/block_instanced.vert", "assets/shaders/block.frag")?;
 
-        let mut grid = GridPlane::new(&display, [0.75, 0.75, 0.75], 1.0, 1000, 1000).unwrap();
+        let mut grid = GridPlane::new(&display, [0.75, 0.75, 0.75], 10.0, 100, 100).unwrap();
         grid.projection = *perspective;
 
         Ok( ChunkDemoScene { gl: display.clone(), grid, chunk: WorldChunk::new(64, 32, 64), 
@@ -115,6 +115,7 @@ impl ChunkDemoScene
         self.force_chunk_regen = true;
     }
 
+    #[allow(non_snake_case)]
     pub fn make_simplex_noise2D(self: &mut ChunkDemoScene, zoom_factor: f32, seed: Option<[u8; 32]>)
     {
         self.chunk.make_empty();
@@ -166,6 +167,70 @@ impl ChunkDemoScene
                 }
             }
         }
+        println!("\nNew chunk generated with Simplex Noise:\n Seed: {:?}\nZoom Factor: {}", seed, zoom_factor);
+        self.force_chunk_regen = true;
+    }
+
+    // TODO: Make threshold an argument
+    #[allow(non_snake_case)]
+    pub fn make_simplex_noise3D(self: &mut ChunkDemoScene, zoom_factor: f32, seed: Option<[u8; 32]>)
+    {
+        self.chunk.make_empty();
+
+        // The noise generator
+        let noise_machine = SimplexNoise::new(seed);
+
+        // Only testing 2D noise to start
+        // In this test the chunk will be solid (no caves)
+        // but will have variable height
+        for y in 0..self.chunk.height
+        {
+            for x in 0..self.chunk.width
+            {
+                for z in 0..self.chunk.depth
+                {
+                    // Zoom into the noise by scaling down the x and z
+                    // (or if zoom_factor is large than 1 it will scale up - resulting in chaotic noise)
+                    let xf = x as f32 * zoom_factor;
+                    let yf = y as f32 * zoom_factor;
+                    let zf = z as f32 * zoom_factor;
+
+                    let noise_value = noise_machine.noise_3D(xf, yf, zf);
+                    
+                    
+                    // Result of the noise is between -1 and 1. Need to scale it to be between
+                    // 0 and 1:
+                    let old_range = 2.0;
+                    let new_range = 1.0;
+                    let noise_value = ((noise_value + 1.0) * new_range) / old_range;
+
+                    // use noise_value to decide on the block type
+                    // threshold will decide if the block should be created or not
+                    // uses the y (height) of the block to adjust the threshold
+                    // the higher up the block the smaller the threshold 
+                    // should help stop grass from going all the way to the top of the chunk
+                    // TODO: tweak this threshold adjustment so it's not linear
+                    /let threshold = 0.3;// * (0.05 * ((y + 1) as f32));
+                    //println!("threshold: {}, y: {}", threshold, y);
+
+                    let mut v = Voxel { id: 0, visible: true };
+
+                    if noise_value >= threshold
+                    {
+                        v.id = match y
+                        {
+                            0...7 => 3,
+                            8...9 => 2,
+                            _ => 1
+                        };
+                    }
+
+                    self.chunk.layers[y as usize].layer[x][z] = v; 
+                    
+                }
+            }
+        }
+        
         println!("\nNew chunk generated with Simplex Noise:\n Seed: {:?}\nZoom Factor: {}", seed, zoom_factor);
         self.force_chunk_regen = true;
     }

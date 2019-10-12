@@ -1,4 +1,20 @@
 
+/**********************************************************
+ *  file:       noise.rs
+ *  author:     Joey Pollack (Joey@joeyrp.com)
+ *  date:       2019/11/10 (y/m/d)
+ *  notes:       Some algorithms for generating noise. I ported these
+ *              from C/C++ to Rust.
+ *              The algorithm for OlcNoise was written by
+ *              One Lone Coder: 
+ *              https://github.com/OneLoneCoder/videos/blob/master/OneLoneCoder_PerlinNoise.cpp
+ * 
+ *              The algorithm for SimplexNoise was written by
+ *              Ken Perlin and implemented in C by Stefan Gustavson (stegu@itn.liu.se)
+ * 
+ **********************************************************/
+
+
 // Should remove unused_variables, unused_mut when module is complete
 #![allow(unused_variables, unused_mut, dead_code, non_snake_case)]
 use rand::{ /* prelude::*, */ Rng, rngs::StdRng, SeedableRng};
@@ -208,6 +224,43 @@ float  SimplexNoise1234::grad( int hash, float x, float y ) {
         return u + f;
     }
 
+    // Note: C implementation by Stefan Gustavson (stegu@itn.liu.se)
+    fn grad_3d(hash: i32, x: f32, y: f32, z: f32) -> f32
+    {
+        let h = hash & 15;
+        let mut u = y;
+        if h < 8
+        {
+            u = x;
+        }
+
+        let mut v = z;
+        if h < 4
+        {
+            v = y;
+        }
+
+        if h == 12 || h == 14
+        {
+            v = x;
+        }
+
+        let mut ru = u;
+        if h&1 > 0
+        {
+            ru = -u;
+        }
+
+        let mut rv = v;
+        if h&2 > 0
+        {
+            rv = -v;
+        }
+
+        ru + rv
+    }
+
+    // Note: C implementation by Stefan Gustavson (stegu@itn.liu.se)
     #[allow(unused_assignments)]
     pub fn noise_2D(self: &SimplexNoise, x: f32, y: f32) -> f32
     {
@@ -284,7 +337,192 @@ float  SimplexNoise1234::grad( int hash, float x, float y ) {
             n2 = t2 * t2 * SimplexNoise::grad_2d(self.perm[(ii + 1 + self.perm[(jj+1) as usize]) as usize], x2, y2);
         }
 
+        // TODO: This scale factor can be an argument
+        //       or use 40.0 and have an argument to adjust it
         40.0 * (n0 + n1 + n2)
+    }
+
+    
+    // // 3D simplex noise
+    // Note: C implementation by Stefan Gustavson (stegu@itn.liu.se)
+    #[allow(non_snake_case, unused_assignments)]
+    pub fn noise_3D(self: &SimplexNoise, x: f32, y: f32, z: f32) -> f32
+    {        
+
+    // // Simple skewing factors for the 3D case
+        let F3 = 0.333333333;
+        let G3 = 0.166666667;
+
+    // Noise contributions from the four corners
+        let mut n0 = 0.0;
+        let mut n1 = 0.0;
+        let mut n2 = 0.0;
+        let mut n3 = 0.0;
+
+    //     // Skew the input space to determine which simplex cell we're in
+        let s = (x + y + z) * F3;
+        let xs = x + s;
+        let ys = y + s;
+        let zs = z + s;
+        let i: i32 = xs.floor() as i32;
+        let j: i32 = ys.floor() as i32;
+        let k: i32 = zs.floor() as i32;
+
+        let t = ((i + j + k) as f32) * G3;
+        let X0 = i as f32 - t;
+        let Y0 = j as f32 - t;
+        let Z0 = k as f32 - t;
+        let x0 = x - X0;
+        let y0 = y - Y0;
+        let z0 = z - Z0;
+
+
+    //     // For the 3D case, the simplex shape is a slightly irregular tetrahedron.
+    //     // Determine which simplex we are in.
+        let mut i1 = 0;
+        let mut j1 = 0;
+        let mut k1 = 0;
+        let mut i2 = 0;
+        let mut j2 = 0;
+        let mut k2 = 0;
+
+
+
+        if x0 >= y0
+        {
+            if y0 >= z0
+            {
+                i1 = 1;
+                j1 = 0;
+                k1 = 0;
+                i2 = 1;
+                j2 = 1; 
+                k2 = 0;
+            }
+            else if x0 >= z0
+            {
+                i1 = 1;
+                j1 = 0;
+                k1 = 0;
+                i2 = 1;
+                j2 = 0;
+                k2 = 1;
+            }
+            else
+            {
+                i1 = 0;
+                j1 = 0;
+                k1 = 1;
+                i2 = 1;
+                j2 = 0; 
+                k2 = 1;
+            }
+        }
+        else
+        {
+            if y0 < z0
+            {
+                i1 = 0;
+                j1 = 0;
+                k1 = 1;
+                i2 = 0;
+                j2 = 1; 
+                k2 = 1;
+            }
+            else if x0 < z0
+            {
+                i1 = 0;
+                j1 = 1;
+                k1 = 0;
+                i2 = 0;
+                j2 = 1; 
+                k2 = 1;
+            }
+            else
+            {
+                i1 = 0;
+                j1 = 1;
+                k1 = 0;
+                i2 = 1;
+                j2 = 1; 
+                k2 = 0;
+            }
+        }
+
+
+    // Offsets for second corner in (x,y,z) coords
+        let x1 = x0 - (i1 as f32) + G3;
+        let y1 = y0 - (j1 as f32) + G3;
+        let z1 = z0 - (k1 as f32) + G3;
+
+// Offsets for third corner in (x,y,z) coords
+
+        let x2 = x0 - (i2 as f32) + 2.0 * G3;
+        let y2 = y0 - (j2 as f32) + 2.0 * G3;
+        let z2 = z0 - (k2 as f32) + 2.0 * G3;
+
+// Offsets for last corner in (x,y,z) coords
+
+        let x3 = x0 - 1.0 + 3.0 * G3;
+        let y3 = y0 - 1.0 + 3.0 * G3;
+        let z3 = z0 - 1.0 + 3.0 * G3;
+
+    //     // Wrap the integer indices at 256, to avoid indexing perm[] out of bounds
+        let ii: usize = (i & 0xff) as usize;
+        let jj: usize = (j & 0xff) as usize;
+        let kk: usize = (k & 0xff) as usize;
+
+    //     // Calculate the contribution from the four corners
+        let mut t0 = 0.6 - x0 * x0 - y0 * y0 - z0 * z0;
+        if t0 < 0.0
+        {
+            n0 = 0.0;
+        }
+        else
+        {
+            t0 *= t0;
+            n0 = t0 * t0 * SimplexNoise::grad_3d(self.perm[ii+self.perm[jj+self.perm[kk] as usize] as usize], x0, y0, z0)
+        }
+
+        let mut t1 = 0.6 - x1 * x1 - y1 * y1 - z1 * z1;
+        if t1 < 0.0
+        {
+            n1 = 0.0;
+        }
+        else
+        {
+            t1 *= t1;
+            n1 = t1 * t1 * SimplexNoise::grad_3d(self.perm[ii+i1+self.perm[jj+j1+self.perm[kk+k1] as usize] as usize], x1, y1, z1);
+        }
+
+        let mut t2 = 0.6 - x2*x2 - y2*y2 - z2*z2;
+        if t2 < 0.0
+        {
+            n2 = 0.0;
+        }
+        else
+        {
+            t2 *= t2;
+            n2 = t2 * t2 * SimplexNoise::grad_3d(self.perm[ii+i2+self.perm[jj+j2+self.perm[kk+k2] as usize] as usize], x2, y2, z2);
+        }
+
+        let mut t3 = 0.6 - x3*x3 - y3*y3 - z3*z3;
+        if t3 < 0.0
+        {
+            n3 = 0.0;
+        }
+        else
+        {
+            t3 *= t3;
+            n3 = t3 * t3 * SimplexNoise::grad_3d(self.perm[ii+1+self.perm[jj+1+self.perm[kk+1] as usize] as usize], x3, y3, z3);
+        }
+
+    //     // Add contributions from each corner to get the final noise value.
+    //     // The result is scaled to stay just inside [-1,1]
+
+        // TODO: This scale factor can be an argument
+        //       or use 40.0 and have an argument to adjust it
+        32.0 * (n0 + n1 + n2 + n3)
     }
 }
 
