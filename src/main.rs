@@ -29,6 +29,8 @@ use game::{AssetLib, InputManager, /* ObjectDemoScene ,*/ ChunkDemoScene, WorldC
 #[derive(Clone, Copy)]
 enum NoiseType
 {
+    RANDOM_2D,
+    RANDOM_3D,
     OLC,
     SIMPLEX_2D,
     SIMPLEX_3D
@@ -41,6 +43,7 @@ struct GameData
     pub noise_type: NoiseType,
     pub zoom_factor: f32,
     pub threshold: f32,
+    pub threshold_falloff: i32,
     pub octaves: i32,
     pub bias: f32,
     pub seed: Option<[u8; 32]>
@@ -81,7 +84,7 @@ fn main()
 
     // Data for use with the game
     let mut game_data = GameData { print_help: true, remake_test_scene: false, noise_type: NoiseType::SIMPLEX_2D, zoom_factor: 0.01, 
-                                    threshold: 0.3, octaves: 4, bias: 0.2, seed: Some([0; 32]) };
+                                    threshold: 0.3, threshold_falloff: 20, octaves: 3, bias: 0.5, seed: Some([0; 32]) };
 
     // Scene for demoing/debugging game objects
     //let mut obj_demo_scene = ObjectDemoScene::new(&mut asset_lib, &display, &perspective).unwrap();
@@ -135,6 +138,12 @@ fn main()
         {
             match game_data.noise_type
             {
+                NoiseType::RANDOM_2D =>
+                    chunk_test_scene.make_chunk_random2d(game_data.seed),
+
+                NoiseType::RANDOM_3D =>
+                    chunk_test_scene.make_chunk_random3d(game_data.threshold, game_data.seed),
+
                 NoiseType::OLC => 
                     chunk_test_scene.make_noise2D_test(game_data.octaves, game_data.bias, game_data.seed),
                 
@@ -142,7 +151,7 @@ fn main()
                     chunk_test_scene.make_simplex_noise2D(game_data.zoom_factor, game_data.seed),
 
                 NoiseType::SIMPLEX_3D =>
-                    chunk_test_scene.make_simplex_noise3D(game_data.zoom_factor, game_data.threshold, game_data.seed),
+                    chunk_test_scene.make_simplex_noise3D(game_data.zoom_factor, game_data.threshold, game_data.threshold_falloff, game_data.seed),
             };
             
             game_data.remake_test_scene = false;
@@ -222,11 +231,11 @@ fn check_input(dt: f64, cam: &mut CameraFPS, window_info: &WindowInfo, input_man
     }
     //  
 
-    let mut speed = 15.0 * dt as f32;
+    let mut speed = 35.0 * dt as f32;
 
     if input_manager.key_down(KeyCode::LSHIFT)
     {
-        speed = 30.0 * dt as f32;
+        speed = speed * 2.0;
     }
 
     // reprint help messsage
@@ -271,7 +280,7 @@ fn check_input(dt: f64, cam: &mut CameraFPS, window_info: &WindowInfo, input_man
         cam.move_up(-speed);
     }
 
-    // Game data
+    // Octaves
     if input_manager.key_pressed(KeyCode::SPACE)
     {
         game_data.octaves += 1;
@@ -283,6 +292,7 @@ fn check_input(dt: f64, cam: &mut CameraFPS, window_info: &WindowInfo, input_man
         game_data.remake_test_scene = true;
     }
 
+    // Seed generation
     if input_manager.key_pressed(KeyCode::C)
     {
         let mut seed: [u8; 32] = [0; 32];
@@ -295,12 +305,13 @@ fn check_input(dt: f64, cam: &mut CameraFPS, window_info: &WindowInfo, input_man
         game_data.remake_test_scene = true;
     }
 
-    if input_manager.key_pressed(KeyCode::VS)
+    if input_manager.key_pressed(KeyCode::V)
     {
         game_data.seed = Some([0; 32]);
         game_data.remake_test_scene = true;
     }
 
+    // Zoom Factor/Bias
     if input_manager.key_down(KeyCode::R)
     {
         let ntype = game_data.noise_type;
@@ -330,6 +341,8 @@ fn check_input(dt: f64, cam: &mut CameraFPS, window_info: &WindowInfo, input_man
             {
                 game_data.bias += 0.05;
             }
+
+            _ => ()
         };
 
         game_data.remake_test_scene = true;
@@ -369,12 +382,15 @@ fn check_input(dt: f64, cam: &mut CameraFPS, window_info: &WindowInfo, input_man
             },
 
             NoiseType::SIMPLEX_2D => dec_zoom(),
-            NoiseType::SIMPLEX_3D => dec_zoom()
+            NoiseType::SIMPLEX_3D => dec_zoom(),
+
+            _ => ()
         };
 
         game_data.remake_test_scene = true;
     }
 
+    // Threshold
     if input_manager.key_down(KeyCode::T)
     {
         if input_manager.key_down(KeyCode::LSHIFT)
@@ -389,7 +405,7 @@ fn check_input(dt: f64, cam: &mut CameraFPS, window_info: &WindowInfo, input_man
         game_data.remake_test_scene = true;
     }
 
-        if input_manager.key_down(KeyCode::G)
+    if input_manager.key_down(KeyCode::G)
     {
         if input_manager.key_down(KeyCode::LSHIFT)
         {
@@ -400,23 +416,74 @@ fn check_input(dt: f64, cam: &mut CameraFPS, window_info: &WindowInfo, input_man
             game_data.threshold -= 0.001;
         }
 
+        if game_data.threshold < 0.0
+        {
+            game_data.threshold = 0.0;
+        }
+
+        game_data.remake_test_scene = true;
+    }
+
+    // Threshold Falloff
+    if input_manager.key_down(KeyCode::Y)
+    {
+        if input_manager.key_down(KeyCode::LSHIFT)
+        {
+            game_data.threshold_falloff += 5;
+        }
+        else 
+        {
+            game_data.threshold_falloff += 1;
+        }
+
+        game_data.remake_test_scene = true;
+    }
+
+    if input_manager.key_down(KeyCode::H)
+    {
+        if input_manager.key_down(KeyCode::LSHIFT)
+        {
+            game_data.threshold_falloff -= 5;
+        }
+        else 
+        {
+            game_data.threshold_falloff -= 1;
+        }
+
+        if game_data.threshold_falloff < 1
+        {
+            game_data.threshold_falloff = 1;
+        }
+
         game_data.remake_test_scene = true;
     }
 
     // Noise modes: 
     if input_manager.key_pressed(KeyCode::NUM1)
     {
-        game_data.noise_type = NoiseType::OLC;
+        game_data.noise_type = NoiseType::RANDOM_2D;
         game_data.remake_test_scene = true;
     }
 
     if input_manager.key_pressed(KeyCode::NUM2)
     {
-        game_data.noise_type = NoiseType::SIMPLEX_2D;
+        game_data.noise_type = NoiseType::RANDOM_3D;
         game_data.remake_test_scene = true;
     }
 
     if input_manager.key_pressed(KeyCode::NUM3)
+    {
+        game_data.noise_type = NoiseType::OLC;
+        game_data.remake_test_scene = true;
+    }
+
+    if input_manager.key_pressed(KeyCode::NUM4)
+    {
+        game_data.noise_type = NoiseType::SIMPLEX_2D;
+        game_data.remake_test_scene = true;
+    }
+
+    if input_manager.key_pressed(KeyCode::NUM5)
     {
         game_data.noise_type = NoiseType::SIMPLEX_3D;
         game_data.remake_test_scene = true;
@@ -434,7 +501,7 @@ fn check_input(cam: &mut CameraFPS, mouse_lock_point: &Point) -> bool
 
 fn print_controls()
 {
-    println!("\nDemo Controls:\n\tWASD: Move\n\tE: Move Up\n\tQ: Move Down\n\tMouse Move: Look\n\t1, 2, 3: Change Noise Type (OLC), (Simplex 2D), (Simplex 3D");
+    println!("\nDemo Controls:\n\tWASD: Move\n\tE: Move Up\n\tQ: Move Down\n\tMouse Move: Look\n\t1, 2, 3, 4, 5: Change Noise Type (Random 2D), (Random 3D), (OLC), (Simplex 2D), (Simplex 3D)");
     println!("\tR: Adjust Bias/Zoom Factor Up\n\tF: Adjust Bias/Zoom Factor Down\n\tT: Adjust Threshold Up\n\tG: Adjust Threshold Down\n\tSPACE: Increase Octave");
-    println!("\tV: Use Default Seed\n\tC: Use New Random Seed\n\tSHIFT: Move and Adjust Faster\n\tF1: Reprint this message\n");
+    println!("\tY: Adjust Threshold Falloff Up\n\tH: Adjust Threshold Falloff Down\n\tV: Use Default Seed\n\tC: Use New Random Seed\n\tSHIFT: Move and Adjust Faster\n\tF1: Reprint this message\n");
 }

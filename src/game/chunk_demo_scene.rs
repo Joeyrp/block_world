@@ -1,5 +1,6 @@
 
 use std::rc::Rc;
+use rand::{ /* prelude::*, */ Rng, rngs::StdRng, SeedableRng};
 use crate::{ graphics::Gl, utils::mat4_to_array, GridPlane, AssetLib, Flip, 
                 WorldChunk, game::world_chunk::Voxel, game::world_chunk::Attr, utils::OlcNoise, utils::SimplexNoise };
 
@@ -62,6 +63,92 @@ impl ChunkDemoScene
         self.chunk.layers[15].layer[7][7].id = 0;
     }
 
+    pub fn make_chunk_random2d(self: &mut ChunkDemoScene, seed: Option<[u8; 32]>)
+    {
+        self.chunk.make_empty();
+        
+        let seed = match seed
+        {
+            Some(s) => s,
+            None => {
+                [0; 32]
+            }
+        };
+
+        let mut rng: StdRng = SeedableRng::from_seed(seed);
+
+        for x in 0..self.chunk.width
+        {
+            for z in 0..self.chunk.depth
+            {
+                let height_scale = rng.gen::<f32>();
+                //println!("Noise sample at ({}, {}): {}", x, z, height_scale);
+                
+                let final_height = (1.0 + height_scale * ((self.chunk.height - 1) as f32)) as i32; 
+                //println!("height_scale: {} -- final_height: {}", height_scale, final_height);
+
+                // fill chunk column up to height
+                for i in 0..(final_height + 1)
+                {
+                    let value = match i
+                    {
+                        0...7 => 3,
+                        8...9 => 2,
+                        _ => 1
+                    };
+
+                    // heigth - i is a hack to put the grass on the top and the stone on the bottom of the chunk
+                    self.chunk.layers[i as usize].layer[x][z] = Voxel { id: value, visible: true };
+                }
+            }
+        }
+
+        println!("\nNew chunk generated with Random 2D Noise:\nseed: {:?}", seed);
+        self.force_chunk_regen = true;
+    }
+
+    pub fn make_chunk_random3d(self: &mut ChunkDemoScene, threshold: f32, seed: Option<[u8; 32]>)
+    {
+        self.chunk.make_empty();
+
+        let seed = match seed
+        {
+            Some(s) => s,
+            None => {
+                [0; 32]
+            }
+        };
+
+        let mut rng: StdRng = SeedableRng::from_seed(seed);
+        for y in 0..self.chunk.height
+        {
+            for x in 0..self.chunk.width
+            {
+                for z in 0..self.chunk.depth
+                {
+                    let noise_value = rng.gen::<f32>();
+
+                    let mut v = Voxel { id: 0, visible: true };
+
+                    if noise_value >= threshold
+                    {
+                        v.id = match y
+                        {
+                            0...7 => 3,
+                            8...9 => 2,
+                            _ => 1
+                        };
+                    }
+
+                    self.chunk.layers[y as usize].layer[x][z] = v; 
+                }
+            }
+        }
+
+        println!("\nNew chunk generated with Random 2D Noise:\nseed: {:?}\nthreshold: {}", seed, threshold);
+        self.force_chunk_regen = true;
+    }
+
     #[allow(non_snake_case)]
     pub fn make_noise2D_test(self: &mut ChunkDemoScene, octaves: i32, bias: f32, seed: Option<[u8; 32]>)
     {
@@ -79,6 +166,7 @@ impl ChunkDemoScene
         // Only testing 2D noise to start
         // In this test the chunk will be solid (no caves)
         // but will have variable height
+        
         for x in 0..self.chunk.width
         {
             for z in 0..self.chunk.depth
@@ -172,7 +260,7 @@ impl ChunkDemoScene
     }
 
     #[allow(non_snake_case)]
-    pub fn make_simplex_noise3D(self: &mut ChunkDemoScene, zoom_factor: f32, threshold: f32, seed: Option<[u8; 32]>)
+    pub fn make_simplex_noise3D(self: &mut ChunkDemoScene, zoom_factor: f32, threshold: f32, threshold_falloff: i32, seed: Option<[u8; 32]>)
     {
         self.chunk.make_empty();
 
@@ -182,6 +270,7 @@ impl ChunkDemoScene
         // Only testing 2D noise to start
         // In this test the chunk will be solid (no caves)
         // but will have variable height
+        let mut once = true;
         for y in 0..self.chunk.height
         {
             for x in 0..self.chunk.width
@@ -205,16 +294,22 @@ impl ChunkDemoScene
 
                     // use noise_value to decide on the block type
                     // threshold will decide if the block should be created or not
-                    // uses the y (height) of the block to adjust the threshold
-                    // the higher up the block the smaller the threshold 
-                    // should help stop grass from going all the way to the top of the chunk
-                    // TODO: tweak this threshold adjustment so it's not linear
-                    // let threshold = 0.3;// * (0.05 * ((y + 1) as f32));
-                    //println!("threshold: {}, y: {}", threshold, y);
+                    
+                    // Function to increase threshold as height increases
+                    let sqy = (y*y) as i32;
+                    let sqy = sqy / 100;
+                    let final_threshold = threshold + ((sqy as f32)/threshold_falloff as f32);
+
+                    // DEBUG: Output final_threshold values for 1 column
+                    if once
+                    {
+                        println!("final_threshold: {}", final_threshold);
+                        once = false;
+                    }
 
                     let mut v = Voxel { id: 0, visible: true };
 
-                    if noise_value >= threshold
+                    if noise_value >= final_threshold
                     {
                         v.id = match y
                         {
@@ -228,9 +323,11 @@ impl ChunkDemoScene
                     
                 }
             }
+            once = true;
         }
         
-        println!("\nNew chunk generated with Simplex Noise:\n Seed: {:?}\nZoom Factor: {}\nThreshold: {}", seed, zoom_factor, threshold);
+        println!("\nNew chunk generated with Simplex Noise:\n Seed: {:?}\nZoom Factor: {}\nThreshold: {}\nThreshold Falloff: {}", 
+                    seed, zoom_factor, threshold, threshold_falloff);
         self.force_chunk_regen = true;
     }
 
