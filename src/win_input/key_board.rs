@@ -71,6 +71,7 @@ pub struct KeyBoard
 {
 }
 
+#[allow(dead_code)]
 impl KeyBoard
 {
     pub fn key_pressed(key: KeyCode) -> bool
