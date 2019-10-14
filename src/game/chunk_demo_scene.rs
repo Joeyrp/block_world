@@ -171,9 +171,8 @@ impl ChunkDemoScene
         self.force_chunk_regen = true;
     }
 
-    // TODO: Make threshold an argument
     #[allow(non_snake_case)]
-    pub fn make_simplex_noise3D(self: &mut ChunkDemoScene, zoom_factor: f32, seed: Option<[u8; 32]>)
+    pub fn make_simplex_noise3D(self: &mut ChunkDemoScene, zoom_factor: f32, threshold: f32, seed: Option<[u8; 32]>)
     {
         self.chunk.make_empty();
 
@@ -210,7 +209,7 @@ impl ChunkDemoScene
                     // the higher up the block the smaller the threshold 
                     // should help stop grass from going all the way to the top of the chunk
                     // TODO: tweak this threshold adjustment so it's not linear
-                    /let threshold = 0.3;// * (0.05 * ((y + 1) as f32));
+                    // let threshold = 0.3;// * (0.05 * ((y + 1) as f32));
                     //println!("threshold: {}, y: {}", threshold, y);
 
                     let mut v = Voxel { id: 0, visible: true };
@@ -231,7 +230,7 @@ impl ChunkDemoScene
             }
         }
         
-        println!("\nNew chunk generated with Simplex Noise:\n Seed: {:?}\nZoom Factor: {}", seed, zoom_factor);
+        println!("\nNew chunk generated with Simplex Noise:\n Seed: {:?}\nZoom Factor: {}\nThreshold: {}", seed, zoom_factor, threshold);
         self.force_chunk_regen = true;
     }
 
