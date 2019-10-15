@@ -1,5 +1,6 @@
 
 
+#[derive(Copy, Clone, Debug)]
 pub struct GameData
 {
     pub print_help: bool,

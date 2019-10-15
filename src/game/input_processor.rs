@@ -12,6 +12,11 @@ pub struct InputProcessor
 
 impl InputProcessor
 {
+    pub fn get_controls_string() -> &'static str
+    {
+        "Demo Controls:\n\n\tWASD: Move\n\tE: \tMove Up\n\tQ: Move Down\n\tMouse Move: Look\n\t1, 2, 3, 4, 5: Change Noise Type\n\tR: Adjust Bias/Zoom Factor Up\n\tF: Adjust Bias/Zoom Factor Down\n\tT: Adjust Threshold Up\n\tG: Adjust Threshold Down\n\tSPACE: Increase Octave\n\tY: Adjust Threshold Falloff Up\n\tH: Adjust Threshold Falloff Down\n\tV: Use Default Seed\n\tC: Use New Random Seed\n\tSHIFT: Move and Adjust Faster\n\tF1: Show/Hide this message\n\tF2: Show/Hide Chunk Info"
+    }
+    
     pub fn process_input(dt: f64, cam: &mut CameraFPS, window_info: &WindowInfo, input_manager: &mut InputManager, game_data: &mut GameData) -> bool
     {
         // Handle Mouse Movement

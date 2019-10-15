@@ -1,11 +1,13 @@
 
 use std::rc::Rc;
 use rand::{ /* prelude::*, */ Rng, rngs::StdRng, SeedableRng};
-use crate::{ graphics::Gl, utils::mat4_to_array, GridPlane, AssetLib, Flip, 
-                WorldChunk, game::world_chunk::Voxel, game::world_chunk::Attr, utils::OlcNoise, utils::SimplexNoise };
+use glium_glyph::glyph_brush::{rusttype::Font, Section, rusttype::Scale};
+use glium_glyph::GlyphBrush;
+use crate::{ graphics::Gl, utils::mat4_to_array, GridPlane, AssetLib, Flip, graphics::WindowInfo, game::InputProcessor,
+                WorldChunk, game::world_chunk::Voxel, game::world_chunk::Attr, game::GameData, game::game_data::NoiseType, utils::OlcNoise, utils::SimplexNoise };
 
 
-pub struct ChunkDemoScene
+pub struct ChunkDemoScene<'font, 'a>
 {
     gl: Gl,
     grid: GridPlane,
@@ -13,12 +15,13 @@ pub struct ChunkDemoScene
     perspective: glm::Mat4,
     chunk_instance: Option<Rc<glium::VertexBuffer<Attr>>>,
     force_chunk_regen: bool,
+    glyph_brush: GlyphBrush<'font, 'a>
 }
 
-impl ChunkDemoScene
+impl<'font, 'a> ChunkDemoScene<'font, 'a>
 {
     pub fn new(assets: &mut AssetLib, display: Gl, perspective: &glm::Mat4) 
-        -> Result<ChunkDemoScene, String>
+        -> Result<ChunkDemoScene<'font, 'a>, String>
     {
         // Pre Load assets
         assets.get_mesh("assets/Cube/BasicCube.obj")?;
@@ -30,28 +33,33 @@ impl ChunkDemoScene
         let mut grid = GridPlane::new(&display, [0.75, 0.75, 0.75], 10.0, 100, 100).unwrap();
         grid.projection = *perspective;
 
+        let dejavu: &[u8] = include_bytes!("../../assets/fonts/open-sans/OpenSans-Bold.ttf");
+        let fonts = vec![Font::from_bytes(dejavu).unwrap()];
+
+        let glyph_brush = GlyphBrush::new(&(*display.inner), fonts);
+
         Ok( ChunkDemoScene { gl: display.clone(), grid, chunk: WorldChunk::new(64, 32, 64), 
-                            perspective: *perspective, chunk_instance: None, force_chunk_regen: false })
+                            perspective: *perspective, chunk_instance: None, force_chunk_regen: false, glyph_brush })
     }
 
-    pub fn get_chunk(self: &ChunkDemoScene) -> &WorldChunk
+    pub fn get_chunk(self: &ChunkDemoScene<'font, 'a>) -> &WorldChunk
     {
         &self.chunk
     }
 
-    pub fn make_chunk_single_layer(self: &mut ChunkDemoScene)
+    pub fn make_chunk_single_layer(self: &mut ChunkDemoScene<'font, 'a>)
     {
         self.chunk.layers[8].fill_with(1);
     }
 
-    pub fn make_chunk_single_layer_with_hole(self: &mut ChunkDemoScene)
+    pub fn make_chunk_single_layer_with_hole(self: &mut ChunkDemoScene<'font, 'a>)
     {
         self.chunk.layers[5].fill_with(1);
 
         self.chunk.layers[5].layer[8][8].id = 0;
     }
 
-    pub fn make_test_one(self: &mut ChunkDemoScene)
+    pub fn make_test_one(self: &mut ChunkDemoScene<'font, 'a>)
     {
         /*
             LAYERS: 16x16x16 = 4,096
@@ -68,7 +76,7 @@ impl ChunkDemoScene
         self.chunk.layers[15].layer[7][7].id = 0;
     }
 
-    pub fn make_chunk_random2d(self: &mut ChunkDemoScene, seed: Option<[u8; 32]>)
+    pub fn make_chunk_random2d(self: &mut ChunkDemoScene<'font, 'a>, seed: Option<[u8; 32]>)
     {
         self.chunk.make_empty();
         
@@ -112,7 +120,7 @@ impl ChunkDemoScene
         self.force_chunk_regen = true;
     }
 
-    pub fn make_chunk_random3d(self: &mut ChunkDemoScene, threshold: f32, seed: Option<[u8; 32]>)
+    pub fn make_chunk_random3d(self: &mut ChunkDemoScene<'font, 'a>, threshold: f32, seed: Option<[u8; 32]>)
     {
         self.chunk.make_empty();
 
@@ -155,7 +163,7 @@ impl ChunkDemoScene
     }
 
     #[allow(non_snake_case)]
-    pub fn make_noise2D_test(self: &mut ChunkDemoScene, octaves: i32, bias: f32, seed: Option<[u8; 32]>)
+    pub fn make_noise2D_test(self: &mut ChunkDemoScene<'font, 'a>, octaves: i32, bias: f32, seed: Option<[u8; 32]>)
     {
         //println!("Generating chunk from 2D noise");
         //println!("Octaves: {}, Bias: {}", octaves, bias);
@@ -209,7 +217,7 @@ impl ChunkDemoScene
     }
 
     #[allow(non_snake_case)]
-    pub fn make_simplex_noise2D(self: &mut ChunkDemoScene, zoom_factor: f32, seed: Option<[u8; 32]>)
+    pub fn make_simplex_noise2D(self: &mut ChunkDemoScene<'font, 'a>, zoom_factor: f32, seed: Option<[u8; 32]>)
     {
         self.chunk.make_empty();
 
@@ -265,7 +273,7 @@ impl ChunkDemoScene
     }
 
     #[allow(non_snake_case)]
-    pub fn make_simplex_noise3D(self: &mut ChunkDemoScene, zoom_factor: f32, threshold: f32, threshold_falloff: i32, seed: Option<[u8; 32]>)
+    pub fn make_simplex_noise3D(self: &mut ChunkDemoScene<'font, 'a>, zoom_factor: f32, threshold: f32, threshold_falloff: i32, seed: Option<[u8; 32]>)
     {
         self.chunk.make_empty();
 
@@ -327,16 +335,59 @@ impl ChunkDemoScene
         self.force_chunk_regen = true;
     }
 
-    pub fn update(self: &mut ChunkDemoScene, _delta_time: f64)
+    fn get_chunk_info_string(chunk: &WorldChunk, game_data: &GameData) -> String
     {
+        let mut info = String::from("Chunk Info:\n");
+        info += &String::from(format!("\nDimensions: ({}, {}, {})", chunk.width, chunk.height, chunk.depth));
+        info += &String::from(format!("\nTotal Blocks: {}\nHidden Blocks: {}\nRendered Blocks: {}", chunk.total_blocks, chunk.hidden_blocks, chunk.rendered_blocks));
+        info += &String::from(format!("\n\nNoise Type: {:?}", game_data.noise_type));
+        info += &String::from(format!("\n\nSeed: {:?}\n", game_data.seed));
+
+        info += &match game_data.noise_type
+        {
+            NoiseType::RANDOM_2D => String::from(""),
+            NoiseType::RANDOM_3D => String::from(format!("\nThreshold: {}", game_data.threshold)),
+            NoiseType::OLC => String::from(format!("\nOctaves: {}\nBias: {}", game_data.octaves, game_data.bias)),
+            NoiseType::SIMPLEX_2D => String::from(format!("\nZoom Factor: {}", game_data.zoom_factor)),
+            NoiseType::SIMPLEX_3D => String::from(format!("\nZoom Factor: {}\nThreshold: {}\nThreshold Falloff: {}", game_data.zoom_factor, game_data.threshold, game_data.threshold_falloff)),
+        };
+
+        info
+    }
+
+    pub fn update(self: &mut ChunkDemoScene<'font, 'a>, game_data: &mut GameData, _delta_time: f64)
+    {
+        if game_data.remake_test_scene
+        {
+            match game_data.noise_type
+            {
+                NoiseType::RANDOM_2D =>
+                    self.make_chunk_random2d(game_data.seed),
+
+                NoiseType::RANDOM_3D =>
+                    self.make_chunk_random3d(game_data.threshold, game_data.seed),
+
+                NoiseType::OLC => 
+                    self.make_noise2D_test(game_data.octaves, game_data.bias, game_data.seed),
+                
+                NoiseType::SIMPLEX_2D => 
+                    self.make_simplex_noise2D(game_data.zoom_factor, game_data.seed),
+
+                NoiseType::SIMPLEX_3D =>
+                    self.make_simplex_noise3D(game_data.zoom_factor, game_data.threshold, game_data.threshold_falloff, game_data.seed),
+            };
+            
+            game_data.remake_test_scene = false;
+        }
+
         // The instance buffer must be created before drawing begins
         // so this cannot happen in render_scene()
         self.chunk_instance = Some(self.chunk.get_instance_buffer(&self.gl, self.force_chunk_regen));
         self.force_chunk_regen = false;
     }
 
-    pub fn render_scene(self: &mut ChunkDemoScene, assets: &mut AssetLib, 
-                            target: &mut glium::Frame, view: &glm::Mat4)
+    pub fn render_scene(self: &mut ChunkDemoScene<'font, 'a>, assets: &mut AssetLib, game_data: &GameData, window_info: &WindowInfo,
+                            display: &glium::Display, target: &mut glium::Frame, view: &glm::Mat4)
     {
         if self.chunk.instance_buff.is_none()
         {
@@ -387,6 +438,32 @@ impl ChunkDemoScene
         target.draw((&block_mesh.vb, instance_buff.per_instance().unwrap()),
                     &block_mesh.indices, &program.program, uniforms,
                     &params).unwrap();
+
+        // On screen text info
+        let test_scale = 18.0;
+        if game_data.print_help
+        {              
+            self.glyph_brush.queue(Section {
+                text: InputProcessor::get_controls_string(),
+                scale: Scale { x: test_scale, y: test_scale },
+                screen_position: (50.0, 0.0),
+                bounds: (window_info.size.width as f32, window_info.size.height as f32 / 2.0),
+                ..Section::default()
+            });
+        }
+
+        if game_data.print_chunk_info
+        {
+            self.glyph_brush.queue(Section {
+                text: &ChunkDemoScene::get_chunk_info_string(self.get_chunk(), &game_data),
+                scale: Scale { x: test_scale, y: test_scale },
+                screen_position: (window_info.size.width as f32 / 2.0 + 200.0, 0.0),
+                bounds: (250.0, window_info.size.height as f32 / 2.0),
+                ..Section::default()
+            });
+        }
+
+        self.glyph_brush.draw_queued(display, target);
     }
 
 }
