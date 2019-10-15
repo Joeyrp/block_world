@@ -15,6 +15,7 @@ pub use self::program::Program;
 pub use self::texture::Texture;
 pub use self::texture::Flip;
 pub use self::camera_fps::CameraFPS;
+// pub use self::text_renderer::TextRenderer;
 
 
 mod gl;
@@ -28,3 +29,4 @@ mod program;
 mod texture;
 mod mesh;
 // mod model;
+// mod text_renderer;

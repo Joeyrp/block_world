@@ -13,6 +13,8 @@ image = "0.21.0"
 tobj = "0.1.7"
 device_query = "0.1.*"
 rand = "0.7"
+# glyph_brush = "0.6.0"
+glium-glyph = "0.6.0"
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", features = ["winuser"] }

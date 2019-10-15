@@ -34,6 +34,11 @@ impl ChunkDemoScene
                             perspective: *perspective, chunk_instance: None, force_chunk_regen: false })
     }
 
+    pub fn get_chunk(self: &ChunkDemoScene) -> &WorldChunk
+    {
+        &self.chunk
+    }
+
     pub fn make_chunk_single_layer(self: &mut ChunkDemoScene)
     {
         self.chunk.layers[8].fill_with(1);
@@ -103,7 +108,7 @@ impl ChunkDemoScene
             }
         }
 
-        println!("\nNew chunk generated with Random 2D Noise:\nseed: {:?}", seed);
+        // println!("\nNew chunk generated with Random 2D Noise:\nseed: {:?}", seed);
         self.force_chunk_regen = true;
     }
 
@@ -145,7 +150,7 @@ impl ChunkDemoScene
             }
         }
 
-        println!("\nNew chunk generated with Random 2D Noise:\nseed: {:?}\nthreshold: {}", seed, threshold);
+        // println!("\nNew chunk generated with Random 2D Noise:\nseed: {:?}\nthreshold: {}", seed, threshold);
         self.force_chunk_regen = true;
     }
 
@@ -199,7 +204,7 @@ impl ChunkDemoScene
             }
         }
 
-        println!("\nNew chunk generated with OLC Noise:\nseed: {:?}\nnum octaves: {}, bias: {}", seed, octaves, bias);
+        // println!("\nNew chunk generated with OLC Noise:\nseed: {:?}\nnum octaves: {}, bias: {}", seed, octaves, bias);
         self.force_chunk_regen = true;
     }
 
@@ -255,7 +260,7 @@ impl ChunkDemoScene
                 }
             }
         }
-        println!("\nNew chunk generated with Simplex Noise:\n Seed: {:?}\nZoom Factor: {}", seed, zoom_factor);
+        // println!("\nNew chunk generated with Simplex Noise:\nSeed: {:?}\nZoom Factor: {}", seed, zoom_factor);
         self.force_chunk_regen = true;
     }
 
@@ -270,7 +275,6 @@ impl ChunkDemoScene
         // Only testing 2D noise to start
         // In this test the chunk will be solid (no caves)
         // but will have variable height
-        let mut once = true;
         for y in 0..self.chunk.height
         {
             for x in 0..self.chunk.width
@@ -300,13 +304,6 @@ impl ChunkDemoScene
                     let sqy = sqy / 100;
                     let final_threshold = threshold + ((sqy as f32)/threshold_falloff as f32);
 
-                    // DEBUG: Output final_threshold values for 1 column
-                    if once
-                    {
-                        println!("final_threshold: {}", final_threshold);
-                        once = false;
-                    }
-
                     let mut v = Voxel { id: 0, visible: true };
 
                     if noise_value >= final_threshold
@@ -323,11 +320,10 @@ impl ChunkDemoScene
                     
                 }
             }
-            once = true;
         }
         
-        println!("\nNew chunk generated with Simplex Noise:\n Seed: {:?}\nZoom Factor: {}\nThreshold: {}\nThreshold Falloff: {}", 
-                    seed, zoom_factor, threshold, threshold_falloff);
+        // println!("\nNew chunk generated with Simplex Noise:\nSeed: {:?}\nZoom Factor: {}\nThreshold: {}\nThreshold Falloff: {}", 
+        //             seed, zoom_factor, threshold, threshold_falloff);
         self.force_chunk_regen = true;
     }
 

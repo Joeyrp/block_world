@@ -65,7 +65,10 @@ pub struct WorldChunk
     pub height: usize,
     pub depth: usize,
     pub layers: Vec<Layer>,
-    pub instance_buff: Option<Rc<glium::VertexBuffer<Attr>>>
+    pub instance_buff: Option<Rc<glium::VertexBuffer<Attr>>>,
+    pub total_blocks: u32,
+    pub hidden_blocks: u32,
+    pub rendered_blocks: u32,
 }
 
 impl fmt::Display for WorldChunk
@@ -90,7 +93,7 @@ impl WorldChunk
     {
         let layers = vec![Layer::new(width, depth); height];
 
-        WorldChunk { width, height, depth, layers, instance_buff: None }
+        WorldChunk { width, height, depth, layers, instance_buff: None, total_blocks: 0, hidden_blocks: 0, rendered_blocks: 0 }
     }
 
     pub fn make_empty(self: &mut WorldChunk)
@@ -105,7 +108,7 @@ impl WorldChunk
     {
         if self.instance_buff.is_none() || force_regen
         {
-            self.gen_instance_buffer(display, true);
+            self.gen_instance_buffer(display, false);
         }
 
         match &self.instance_buff
@@ -167,6 +170,10 @@ impl WorldChunk
                 println!("Chunk Dimensions ({}x{}x{})\ntotal visible blocks: {}\nskipped blocks: {}\nrendering {} blocks", 
                         self.width, self.height, self.depth, total_blocks, skipped_blocks, data.len());
             }
+
+            self.total_blocks = total_blocks;
+            self.hidden_blocks = skipped_blocks;
+            self.rendered_blocks = data.len() as u32;
 
             Some(Rc::new(glium::vertex::VertexBuffer::dynamic(display, &data).unwrap()))
         };
