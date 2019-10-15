@@ -76,11 +76,11 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
         self.chunk.layers[15].layer[7][7].id = 0;
     }
 
-    pub fn make_chunk_random2d(self: &mut ChunkDemoScene<'font, 'a>, seed: Option<[u8; 32]>)
+    pub fn make_chunk_random2d(self: &mut ChunkDemoScene<'font, 'a>,  game_data: &GameData)
     {
         self.chunk.make_empty();
         
-        let seed = match seed
+        let seed = match game_data.chunk_generation.seed
         {
             Some(s) => s,
             None => {
@@ -120,11 +120,11 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
         self.force_chunk_regen = true;
     }
 
-    pub fn make_chunk_random3d(self: &mut ChunkDemoScene<'font, 'a>, threshold: f32, seed: Option<[u8; 32]>)
+    pub fn make_chunk_random3d(self: &mut ChunkDemoScene<'font, 'a>,  game_data: &GameData)
     {
         self.chunk.make_empty();
 
-        let seed = match seed
+        let seed = match game_data.chunk_generation.seed
         {
             Some(s) => s,
             None => {
@@ -143,7 +143,7 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
 
                     let mut v = Voxel { id: 0, visible: true };
 
-                    if noise_value >= threshold
+                    if noise_value >= game_data.chunk_generation.threshold
                     {
                         v.id = match y
                         {
@@ -163,7 +163,7 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
     }
 
     #[allow(non_snake_case)]
-    pub fn make_noise2D_test(self: &mut ChunkDemoScene<'font, 'a>, octaves: i32, bias: f32, seed: Option<[u8; 32]>)
+    pub fn make_noise2D_test(self: &mut ChunkDemoScene<'font, 'a>,  game_data: &GameData)
     {
         //println!("Generating chunk from 2D noise");
         //println!("Octaves: {}, Bias: {}", octaves, bias);
@@ -174,7 +174,7 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
 
         // The noise generator
         //let noise_machine = OlcNoise::new(self.chunk.width as i32, self.chunk.depth as i32, seed);
-        let noise_machine = OlcNoise::new(32 as i32, 32 as i32, seed);
+        let noise_machine = OlcNoise::new(32 as i32, 32 as i32, game_data.chunk_generation.seed);
 
         // Only testing 2D noise to start
         // In this test the chunk will be solid (no caves)
@@ -187,7 +187,7 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
                 // olc noise does not use x and y between 0 and 1
                // let fx: f32 = (x as f32) / (self.chunk.width as f32);
                 //let fz: f32 = (z as f32) / (self.chunk.depth as f32);
-                let height_scale = noise_machine.sample2D(x as i32, z as i32, octaves, bias);
+                let height_scale = noise_machine.sample2D(x as i32, z as i32, game_data.chunk_generation.octaves, game_data.chunk_generation.bias);
                 //println!("Noise sample at ({}, {}): {}", x, z, height_scale);
                 
                 // use height_scale to lerp between 1 and the chunk height
@@ -217,12 +217,12 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
     }
 
     #[allow(non_snake_case)]
-    pub fn make_simplex_noise2D(self: &mut ChunkDemoScene<'font, 'a>, zoom_factor: f32, seed: Option<[u8; 32]>)
+    pub fn make_simplex_noise2D(self: &mut ChunkDemoScene<'font, 'a>,  game_data: &GameData)
     {
         self.chunk.make_empty();
 
         // The noise generator
-        let noise_machine = SimplexNoise::new(seed);
+        let noise_machine = SimplexNoise::new(game_data.chunk_generation.seed);
 
         // Only testing 2D noise to start
         // In this test the chunk will be solid (no caves)
@@ -233,8 +233,8 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
             {
                 // Zoom into the noise by scaling down the x and z
                 // (or if zoom_factor is large than 1 it will scale up - resulting in chaotic noise)
-                let xf = x as f32 * zoom_factor;
-                let zf = z as f32 * zoom_factor;
+                let xf = x as f32 * game_data.chunk_generation.zoom_factor;
+                let zf = z as f32 * game_data.chunk_generation.zoom_factor;
 
                 let height_scale = noise_machine.noise_2D(xf, zf);
                 
@@ -273,12 +273,12 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
     }
 
     #[allow(non_snake_case)]
-    pub fn make_simplex_noise3D(self: &mut ChunkDemoScene<'font, 'a>, zoom_factor: f32, threshold: f32, threshold_falloff: i32, seed: Option<[u8; 32]>)
+    pub fn make_simplex_noise3D(self: &mut ChunkDemoScene<'font, 'a>, game_data: &GameData)
     {
         self.chunk.make_empty();
 
         // The noise generator
-        let noise_machine = SimplexNoise::new(seed);
+        let noise_machine = SimplexNoise::new(game_data.chunk_generation.seed);
 
         // Only testing 2D noise to start
         // In this test the chunk will be solid (no caves)
@@ -291,9 +291,9 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
                 {
                     // Zoom into the noise by scaling down the x and z
                     // (or if zoom_factor is large than 1 it will scale up - resulting in chaotic noise)
-                    let xf = x as f32 * zoom_factor;
-                    let yf = y as f32 * zoom_factor;
-                    let zf = z as f32 * zoom_factor;
+                    let xf = x as f32 * game_data.chunk_generation.zoom_factor;
+                    let yf = y as f32 * game_data.chunk_generation.zoom_factor;
+                    let zf = z as f32 * game_data.chunk_generation.zoom_factor;
 
                     let noise_value = noise_machine.noise_3D(xf, yf, zf);
                     
@@ -308,9 +308,10 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
                     // threshold will decide if the block should be created or not
                     
                     // Function to increase threshold as height increases
+                    // final = threshold + ((y^2) / 100) / falloff
                     let sqy = (y*y) as i32;
                     let sqy = sqy / 100;
-                    let final_threshold = threshold + ((sqy as f32)/threshold_falloff as f32);
+                    let final_threshold = game_data.chunk_generation.threshold + ((sqy as f32)/game_data.chunk_generation.threshold_falloff as f32);
 
                     let mut v = Voxel { id: 0, visible: true };
 
@@ -340,16 +341,18 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
         let mut info = String::from("Chunk Info:\n");
         info += &String::from(format!("\nDimensions: ({}, {}, {})", chunk.width, chunk.height, chunk.depth));
         info += &String::from(format!("\nTotal Blocks: {}\nHidden Blocks: {}\nRendered Blocks: {}", chunk.total_blocks, chunk.hidden_blocks, chunk.rendered_blocks));
-        info += &String::from(format!("\n\nNoise Type: {:?}", game_data.noise_type));
-        info += &String::from(format!("\n\nSeed: {:?}\n", game_data.seed));
+        info += &String::from(format!("\n\nNoise Type: {:?}", game_data.chunk_generation.noise_type));
+        info += &String::from(format!("\n\nSeed: {:?}\n", game_data.chunk_generation.seed));
 
-        info += &match game_data.noise_type
+        info += &match game_data.chunk_generation.noise_type
         {
             NoiseType::RANDOM_2D => String::from(""),
-            NoiseType::RANDOM_3D => String::from(format!("\nThreshold: {}", game_data.threshold)),
-            NoiseType::OLC => String::from(format!("\nOctaves: {}\nBias: {}", game_data.octaves, game_data.bias)),
-            NoiseType::SIMPLEX_2D => String::from(format!("\nZoom Factor: {}", game_data.zoom_factor)),
-            NoiseType::SIMPLEX_3D => String::from(format!("\nZoom Factor: {}\nThreshold: {}\nThreshold Falloff: {}", game_data.zoom_factor, game_data.threshold, game_data.threshold_falloff)),
+            NoiseType::RANDOM_3D => String::from(format!("\nThreshold: {}", game_data.chunk_generation.threshold)),
+            NoiseType::OLC => String::from(format!("\nOctaves: {}\nBias: {}", game_data.chunk_generation.octaves, game_data.chunk_generation.bias)),
+            NoiseType::SIMPLEX_2D => String::from(format!("\nZoom Factor: {}", game_data.chunk_generation.zoom_factor)),
+            NoiseType::SIMPLEX_3D => String::from(format!("\nZoom Factor: {}\nThreshold: {}\nThreshold Falloff: {}", 
+                                                            game_data.chunk_generation.zoom_factor, game_data.chunk_generation.threshold, 
+                                                            game_data.chunk_generation.threshold_falloff)),
         };
 
         info
@@ -357,27 +360,27 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
 
     pub fn update(self: &mut ChunkDemoScene<'font, 'a>, game_data: &mut GameData, _delta_time: f64)
     {
-        if game_data.remake_test_scene
+        if game_data.debug.remake_test_scene
         {
-            match game_data.noise_type
+            match game_data.chunk_generation.noise_type
             {
                 NoiseType::RANDOM_2D =>
-                    self.make_chunk_random2d(game_data.seed),
+                    self.make_chunk_random2d(game_data),
 
                 NoiseType::RANDOM_3D =>
-                    self.make_chunk_random3d(game_data.threshold, game_data.seed),
+                    self.make_chunk_random3d(game_data),
 
                 NoiseType::OLC => 
-                    self.make_noise2D_test(game_data.octaves, game_data.bias, game_data.seed),
+                    self.make_noise2D_test(game_data),
                 
                 NoiseType::SIMPLEX_2D => 
-                    self.make_simplex_noise2D(game_data.zoom_factor, game_data.seed),
+                    self.make_simplex_noise2D(game_data),
 
                 NoiseType::SIMPLEX_3D =>
-                    self.make_simplex_noise3D(game_data.zoom_factor, game_data.threshold, game_data.threshold_falloff, game_data.seed),
+                    self.make_simplex_noise3D(game_data),
             };
             
-            game_data.remake_test_scene = false;
+            game_data.debug.remake_test_scene = false;
         }
 
         // The instance buffer must be created before drawing begins
@@ -441,7 +444,7 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
 
         // On screen text info
         let test_scale = 18.0;
-        if game_data.print_help
+        if game_data.debug.print_help
         {              
             self.glyph_brush.queue(Section {
                 text: InputProcessor::get_controls_string(),
@@ -452,7 +455,7 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
             });
         }
 
-        if game_data.print_chunk_info
+        if game_data.debug.print_chunk_info
         {
             self.glyph_brush.queue(Section {
                 text: &ChunkDemoScene::get_chunk_info_string(self.get_chunk(), &game_data),

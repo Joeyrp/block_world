@@ -8,6 +8,8 @@ pub use self::asset_lib::AssetLib;
 pub use self::input_manager::InputManager;
 pub use self::input_processor::InputProcessor;
 pub use self::game_data::GameData;
+pub use self::game_data::DebugSettings;
+pub use self::game_data::ChunkGeneration;
 pub use self::game_data::NoiseType;
 
 mod game_data;

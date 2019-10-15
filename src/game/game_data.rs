@@ -1,11 +1,8 @@
 
 
 #[derive(Copy, Clone, Debug)]
-pub struct GameData
+pub struct ChunkGeneration
 {
-    pub print_help: bool,
-    pub print_chunk_info: bool,
-    pub remake_test_scene: bool,
     pub noise_type: NoiseType,
     pub zoom_factor: f32,
     pub threshold: f32,
@@ -13,6 +10,21 @@ pub struct GameData
     pub octaves: i32,
     pub bias: f32,
     pub seed: Option<[u8; 32]>
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct DebugSettings
+{
+    pub print_help: bool,
+    pub print_chunk_info: bool,
+    pub remake_test_scene: bool,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct GameData
+{
+    pub debug: DebugSettings,
+    pub chunk_generation: ChunkGeneration
 }
 
 #[allow(non_camel_case_types)]

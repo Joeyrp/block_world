@@ -8,7 +8,6 @@ extern crate image;
 extern crate glium_glyph;
 
 
-
 use glium::{glutin, Surface};
 use glutin::dpi::LogicalPosition;
 
@@ -26,7 +25,8 @@ mod graphics;
 use graphics::{Gl, WindowInfo, CameraFPS, GridPlane, Mesh, Program, Texture, Flip};
 
 mod game;
-use game::{GameData, NoiseType, AssetLib, InputManager, InputProcessor, /* ObjectDemoScene ,*/ ChunkDemoScene, WorldChunk};
+use game::{GameData, DebugSettings, ChunkGeneration, NoiseType, AssetLib, 
+            InputManager, InputProcessor, /* ObjectDemoScene ,*/ ChunkDemoScene, WorldChunk};
 //
 
 
@@ -69,14 +69,18 @@ fn main()
     let mut input_manager = InputManager::new();
 
     // Data for use with the game
-    let mut game_data = GameData { print_help: true, print_chunk_info: true, remake_test_scene: false, noise_type: NoiseType::SIMPLEX_2D, 
-                                    zoom_factor: 0.01, threshold: 0.3, threshold_falloff: 20, octaves: 3, bias: 0.5, seed: Some([0; 32]) };
+    // let mut game_data = GameData { print_help: true, print_chunk_info: true, remake_test_scene: false, noise_type: NoiseType::SIMPLEX_2D, 
+    //                                 zoom_factor: 0.01, threshold: 0.3, threshold_falloff: 20, octaves: 3, bias: 0.5, seed: Some([0; 32]) };
+    let mut game_data = GameData { debug: DebugSettings { print_help: true, print_chunk_info: true, remake_test_scene: false }, 
+                                    chunk_generation: ChunkGeneration { noise_type: NoiseType::SIMPLEX_2D, zoom_factor: 0.01, 
+                                                                        threshold: 0.3, threshold_falloff: 20, 
+                                                                        octaves: 3, bias: 0.5, seed: Some([0; 32]) } };
 
     // Scenes for demoing/debugging game systems
     //let mut obj_demo_scene = ObjectDemoScene::new(&mut asset_lib, &display, &perspective).unwrap();
     let mut chunk_test_scene = ChunkDemoScene::new(&mut asset_lib, display.clone(), &perspective).unwrap();
 
-    chunk_test_scene.make_simplex_noise2D(game_data.zoom_factor, game_data.seed);
+    chunk_test_scene.make_simplex_noise2D(&game_data);
     //
     
     ///////////////////////////////////////////////////////////
@@ -112,7 +116,7 @@ fn main()
         {
             display.gl_window().window().hide_cursor(true);
             //closed = check_input(delta_time, &mut camera, &window_info, &mut input_manager, &mut game_data);
-            closed = InputProcessor::process_input(delta_time, &mut camera, &window_info, &mut input_manager, &mut game_data);
+            closed = InputProcessor::process_input_debug(delta_time, &mut camera, &window_info, &mut input_manager, &mut game_data);
         }
         else
         {

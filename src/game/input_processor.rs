@@ -17,7 +17,8 @@ impl InputProcessor
         "Demo Controls:\n\n\tWASD: Move\n\tE: \tMove Up\n\tQ: Move Down\n\tMouse Move: Look\n\t1, 2, 3, 4, 5: Change Noise Type\n\tR: Adjust Bias/Zoom Factor Up\n\tF: Adjust Bias/Zoom Factor Down\n\tT: Adjust Threshold Up\n\tG: Adjust Threshold Down\n\tSPACE: Increase Octave\n\tY: Adjust Threshold Falloff Up\n\tH: Adjust Threshold Falloff Down\n\tV: Use Default Seed\n\tC: Use New Random Seed\n\tSHIFT: Move and Adjust Faster\n\tF1: Show/Hide this message\n\tF2: Show/Hide Chunk Info"
     }
     
-    pub fn process_input(dt: f64, cam: &mut CameraFPS, window_info: &WindowInfo, input_manager: &mut InputManager, game_data: &mut GameData) -> bool
+    /// Processes input for debug mode (allows flying around and editing chunk generation settings)
+    pub fn process_input_debug(dt: f64, cam: &mut CameraFPS, window_info: &WindowInfo, input_manager: &mut InputManager, game_data: &mut GameData) -> bool
     {
         // Handle Mouse Movement
     let mouse_state = Mouse::get_state();
@@ -46,13 +47,13 @@ impl InputProcessor
     // reprint help messsage
     if input_manager.key_pressed(KeyCode::F1)
     {
-        game_data.print_help = !game_data.print_help;
+        game_data.debug.print_help = !game_data.debug.print_help;
     }
 
     // print chunk info
     if input_manager.key_pressed(KeyCode::F2)
     {
-        game_data.print_chunk_info = !game_data.print_chunk_info;
+        game_data.debug.print_chunk_info = !game_data.debug.print_chunk_info;
     }
 
     // Camera movement
@@ -94,13 +95,13 @@ impl InputProcessor
     // Octaves
     if input_manager.key_pressed(KeyCode::SPACE)
     {
-        game_data.octaves += 1;
-        if game_data.octaves > 6
+        game_data.chunk_generation.octaves += 1;
+        if game_data.chunk_generation.octaves > 6
         {
-            game_data.octaves = 1;
+            game_data.chunk_generation.octaves = 1;
         }
 
-        game_data.remake_test_scene = true;
+        game_data.debug.remake_test_scene = true;
     }
 
     // Seed generation
@@ -112,20 +113,20 @@ impl InputProcessor
             seed[i] = rand::random::<u8>();
         }
         
-        game_data.seed = Some(seed);
-        game_data.remake_test_scene = true;
+        game_data.chunk_generation.seed = Some(seed);
+        game_data.debug.remake_test_scene = true;
     }
 
     if input_manager.key_pressed(KeyCode::V)
     {
-        game_data.seed = Some([0; 32]);
-        game_data.remake_test_scene = true;
+        game_data.chunk_generation.seed = Some([0; 32]);
+        game_data.debug.remake_test_scene = true;
     }
 
     // Zoom Factor/Bias
     if input_manager.key_down(KeyCode::R)
     {
-        let ntype = game_data.noise_type;
+        let ntype = game_data.chunk_generation.noise_type;
 
         // use a closure to avoid duplicating this code
         // a function would work too but then we'd need
@@ -134,11 +135,11 @@ impl InputProcessor
         let mut inc_zoom = || -> _ {
             if input_manager.key_down(KeyCode::LSHIFT)
             {
-                game_data.zoom_factor += 0.005;
+                game_data.chunk_generation.zoom_factor += 0.005;
             }
             else
             {
-                game_data.zoom_factor += 0.0005;
+                game_data.chunk_generation.zoom_factor += 0.0005;
             }
         };
 
@@ -150,33 +151,33 @@ impl InputProcessor
             
             NoiseType::OLC =>
             {
-                game_data.bias += 0.05;
+                game_data.chunk_generation.bias += 0.05;
             }
 
             _ => ()
         };
 
-        game_data.remake_test_scene = true;
+        game_data.debug.remake_test_scene = true;
     }
 
     if input_manager.key_down(KeyCode::F)
     {
-        let ntype = game_data.noise_type;
+        let ntype = game_data.chunk_generation.noise_type;
 
         // use a closure to avoid duplicating this code
         let mut dec_zoom = || -> _ {
                 if input_manager.key_down(KeyCode::LSHIFT)
                 {
-                    game_data.zoom_factor -= 0.005;
+                    game_data.chunk_generation.zoom_factor -= 0.005;
                 }
                 else
                 {
-                    game_data.zoom_factor -= 0.0005;
+                    game_data.chunk_generation.zoom_factor -= 0.0005;
                 }
 
-                if game_data.zoom_factor < 0.0005
+                if game_data.chunk_generation.zoom_factor < 0.0005
                 {
-                    game_data.zoom_factor = 0.00005;
+                    game_data.chunk_generation.zoom_factor = 0.00005;
                 }
         };
 
@@ -184,11 +185,11 @@ impl InputProcessor
         {
             NoiseType::OLC =>
             {
-                game_data.bias -= 0.05;
+                game_data.chunk_generation.bias -= 0.05;
 
-                if game_data.bias < 0.2
+                if game_data.chunk_generation.bias < 0.2
                 {
-                    game_data.bias = 0.2;
+                    game_data.chunk_generation.bias = 0.2;
                 }
             },
 
@@ -198,7 +199,7 @@ impl InputProcessor
             _ => ()
         };
 
-        game_data.remake_test_scene = true;
+        game_data.debug.remake_test_scene = true;
     }
 
     // Threshold
@@ -206,33 +207,33 @@ impl InputProcessor
     {
         if input_manager.key_down(KeyCode::LSHIFT)
         {
-            game_data.threshold += 0.01;
+            game_data.chunk_generation.threshold += 0.01;
         }
         else 
         {
-            game_data.threshold += 0.001;
+            game_data.chunk_generation.threshold += 0.001;
         }
 
-        game_data.remake_test_scene = true;
+        game_data.debug.remake_test_scene = true;
     }
 
     if input_manager.key_down(KeyCode::G)
     {
         if input_manager.key_down(KeyCode::LSHIFT)
         {
-            game_data.threshold -= 0.01;
+            game_data.chunk_generation.threshold -= 0.01;
         }
         else 
         {
-            game_data.threshold -= 0.001;
+            game_data.chunk_generation.threshold -= 0.001;
         }
 
-        if game_data.threshold < 0.0
+        if game_data.chunk_generation.threshold < 0.0
         {
-            game_data.threshold = 0.0;
+            game_data.chunk_generation.threshold = 0.0;
         }
 
-        game_data.remake_test_scene = true;
+        game_data.debug.remake_test_scene = true;
     }
 
     // Threshold Falloff
@@ -240,64 +241,64 @@ impl InputProcessor
     {
         if input_manager.key_down(KeyCode::LSHIFT)
         {
-            game_data.threshold_falloff += 5;
+            game_data.chunk_generation.threshold_falloff += 5;
         }
         else 
         {
-            game_data.threshold_falloff += 1;
+            game_data.chunk_generation.threshold_falloff += 1;
         }
 
-        game_data.remake_test_scene = true;
+        game_data.debug.remake_test_scene = true;
     }
 
     if input_manager.key_down(KeyCode::H)
     {
         if input_manager.key_down(KeyCode::LSHIFT)
         {
-            game_data.threshold_falloff -= 5;
+            game_data.chunk_generation.threshold_falloff -= 5;
         }
         else 
         {
-            game_data.threshold_falloff -= 1;
+            game_data.chunk_generation.threshold_falloff -= 1;
         }
 
-        if game_data.threshold_falloff < 1
+        if game_data.chunk_generation.threshold_falloff < 1
         {
-            game_data.threshold_falloff = 1;
+            game_data.chunk_generation.threshold_falloff = 1;
         }
 
-        game_data.remake_test_scene = true;
+        game_data.debug.remake_test_scene = true;
     }
 
     // Noise modes: 
     if input_manager.key_pressed(KeyCode::NUM1)
     {
-        game_data.noise_type = NoiseType::RANDOM_2D;
-        game_data.remake_test_scene = true;
+        game_data.chunk_generation.noise_type = NoiseType::RANDOM_2D;
+        game_data.debug.remake_test_scene = true;
     }
 
     if input_manager.key_pressed(KeyCode::NUM2)
     {
-        game_data.noise_type = NoiseType::RANDOM_3D;
-        game_data.remake_test_scene = true;
+        game_data.chunk_generation.noise_type = NoiseType::RANDOM_3D;
+        game_data.debug.remake_test_scene = true;
     }
 
     if input_manager.key_pressed(KeyCode::NUM3)
     {
-        game_data.noise_type = NoiseType::OLC;
-        game_data.remake_test_scene = true;
+        game_data.chunk_generation.noise_type = NoiseType::OLC;
+        game_data.debug.remake_test_scene = true;
     }
 
     if input_manager.key_pressed(KeyCode::NUM4)
     {
-        game_data.noise_type = NoiseType::SIMPLEX_2D;
-        game_data.remake_test_scene = true;
+        game_data.chunk_generation.noise_type = NoiseType::SIMPLEX_2D;
+        game_data.debug.remake_test_scene = true;
     }
 
     if input_manager.key_pressed(KeyCode::NUM5)
     {
-        game_data.noise_type = NoiseType::SIMPLEX_3D;
-        game_data.remake_test_scene = true;
+        game_data.chunk_generation.noise_type = NoiseType::SIMPLEX_3D;
+        game_data.debug.remake_test_scene = true;
     }
 
     return false;
