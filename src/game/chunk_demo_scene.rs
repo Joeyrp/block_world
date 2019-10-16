@@ -38,7 +38,7 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
 
         let glyph_brush = GlyphBrush::new(&(*display.inner), fonts);
 
-        Ok( ChunkDemoScene { gl: display.clone(), grid, chunk: WorldChunk::new(64, 32, 64), 
+        Ok( ChunkDemoScene { gl: display.clone(), grid, chunk: WorldChunk::new(128, 32, 128), 
                             perspective: *perspective, chunk_instance: None, force_chunk_regen: false, glyph_brush })
     }
 
@@ -236,7 +236,7 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
                 let xf = (x as f32 + game_data.chunk_generation.offset.0) * game_data.chunk_generation.zoom_factor;
                 let zf = (z as f32 + game_data.chunk_generation.offset.1) * game_data.chunk_generation.zoom_factor;
 
-                let height_scale = noise_machine.noise_2D(xf, zf);
+                let height_scale = noise_machine.noise_2D(xf, zf, game_data.chunk_generation.sx_scale);
                 
                 
                 // Result of the noise is between -1 and 1. Need to scale it to be between
@@ -250,8 +250,13 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
                 let old_range = 2.0;
                 let new_range = 1.0;
                 let height_scale = ((height_scale + 1.0) * new_range) / old_range;
-                let final_height = (1.0 + height_scale * ((self.chunk.height - 1) as f32)) as i32;
-                //println!("height_scale: {} -- final_height: {}", height_scale, final_height);
+                let mut final_height = (1.0 + height_scale * ((self.chunk.height - 1) as f32)) as i32;
+
+                if final_height >= 32
+                {
+                    // println!("height_scale: {} -- final_height: {}", height_scale, final_height);
+                    final_height = 31;
+                }
 
                 // fill chunk column up to height
                 for i in 0..(final_height + 1)
@@ -295,7 +300,7 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
                     let yf = y as f32 * game_data.chunk_generation.zoom_factor;
                     let zf = (z as f32 + game_data.chunk_generation.offset.1) * game_data.chunk_generation.zoom_factor;
 
-                    let noise_value = noise_machine.noise_3D(xf, yf, zf);
+                    let noise_value = noise_machine.noise_3D(xf, yf, zf, game_data.chunk_generation.sx_scale);
                     
                     
                     // Result of the noise is between -1 and 1. Need to scale it to be between
@@ -350,13 +355,14 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
             NoiseType::RANDOM_3D => String::from(format!("\nThreshold: {}", game_data.chunk_generation.threshold)),
             NoiseType::OLC => String::from(format!("\nOctaves: {}\nBias: {}", game_data.chunk_generation.octaves, game_data.chunk_generation.bias)),
             
-            NoiseType::SIMPLEX_2D => String::from(format!("\nOffsets: ({}, {})\nZoom Factor: {}", game_data.chunk_generation.offset.0,
-                                                             game_data.chunk_generation.offset.1,game_data.chunk_generation.zoom_factor)),
+            NoiseType::SIMPLEX_2D => String::from(format!("\nOffsets: ({}, {})\nZoom Factor: {}\nScale Factor: {}", game_data.chunk_generation.offset.0,
+                                                             game_data.chunk_generation.offset.1, game_data.chunk_generation.zoom_factor, 
+                                                             game_data.chunk_generation.sx_scale)),
 
-            NoiseType::SIMPLEX_3D => String::from(format!("\nOffsets: ({}, {})\nZoom Factor: {}\nThreshold: {}\nThreshold Falloff: {}", 
+            NoiseType::SIMPLEX_3D => String::from(format!("\nOffsets: ({}, {})\nZoom Factor: {}\nScale Factor: {}\nThreshold: {}\nThreshold Falloff: {}", 
                                                             game_data.chunk_generation.offset.0, game_data.chunk_generation.offset.1,
-                                                            game_data.chunk_generation.zoom_factor, game_data.chunk_generation.threshold, 
-                                                            game_data.chunk_generation.threshold_falloff)),
+                                                            game_data.chunk_generation.zoom_factor, game_data.chunk_generation.sx_scale,  
+                                                            game_data.chunk_generation.threshold, game_data.chunk_generation.threshold_falloff)),
         };
 
         info
@@ -376,8 +382,8 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
             NoiseType::RANDOM_2D => "",
             NoiseType::RANDOM_3D => "\nT/G: Adjust Threshold Up/Down",
             NoiseType::OLC => "\nR/F: Adjust Bias Up/Down\nSPACE: Increase Octave",
-            NoiseType::SIMPLEX_2D => "\nR/F: Adjust Zoom Factor Up/Down",
-            NoiseType::SIMPLEX_3D => "\nR/F: Adjust Zoom Factor Up/Down\nT/G: Adjust Threshold Up/Down\nY/H: Adjust Threshold Falloff Up/Down",
+            NoiseType::SIMPLEX_2D => "\nR/F: Adjust Zoom Factor Up/Down\nZ/X: Adjust Scale Up/Down",
+            NoiseType::SIMPLEX_3D => "\nR/F: Adjust Zoom Factor Up/Down\nZ/X: Adjust Scale Up/Down\nT/G: Adjust Threshold Up/Down\nY/H: Adjust Threshold Falloff Up/Down",
         };
 
         controls_string

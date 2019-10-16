@@ -262,7 +262,7 @@ float  SimplexNoise1234::grad( int hash, float x, float y ) {
 
     // Note: C implementation by Stefan Gustavson (stegu@itn.liu.se)
     #[allow(unused_assignments)]
-    pub fn noise_2D(self: &SimplexNoise, x: f32, y: f32) -> f32
+    pub fn noise_2D(self: &SimplexNoise, x: f32, y: f32, scale_factor: f32) -> f32
     {
          let F2: f32 = 0.366025403;
         let G2: f32 = 0.211324865;
@@ -337,16 +337,17 @@ float  SimplexNoise1234::grad( int hash, float x, float y ) {
             n2 = t2 * t2 * SimplexNoise::grad_2d(self.perm[(ii + 1 + self.perm[(jj+1) as usize]) as usize], x2, y2);
         }
 
-        // TODO: This scale factor can be an argument
+        // This scale factor can be an argument
         //       or use 40.0 and have an argument to adjust it
-        40.0 * (n0 + n1 + n2)
+        //40.0 * (n0 + n1 + n2)
+        scale_factor * (n0 + n1 + n2)
     }
 
     
     // // 3D simplex noise
     // Note: C implementation by Stefan Gustavson (stegu@itn.liu.se)
     #[allow(non_snake_case, unused_assignments)]
-    pub fn noise_3D(self: &SimplexNoise, x: f32, y: f32, z: f32) -> f32
+    pub fn noise_3D(self: &SimplexNoise, x: f32, y: f32, z: f32, scale_factor: f32) -> f32
     {        
 
     // // Simple skewing factors for the 3D case
@@ -520,9 +521,10 @@ float  SimplexNoise1234::grad( int hash, float x, float y ) {
     //     // Add contributions from each corner to get the final noise value.
     //     // The result is scaled to stay just inside [-1,1]
 
-        // TODO: This scale factor can be an argument
+        //  This scale factor can be an argument
         //       or use 40.0 and have an argument to adjust it
-        32.0 * (n0 + n1 + n2 + n3)
+        //32.0 * (n0 + n1 + n2 + n3)
+        scale_factor * (n0 + n1 + n2 + n3)
     }
 }
 

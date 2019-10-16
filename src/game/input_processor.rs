@@ -189,8 +189,28 @@ impl InputProcessor
         game_data.debug.remake_test_scene = true;
     }
 
-    // TODO: Don't adjust values if the current NoiseType doesn't use them
-    
+
+    // Scale Factor
+    let sx_speed = match input_manager.key_down( KeyCode::LSHIFT)
+    {
+        true => 10.0 * dt as f32,
+        false => 1.0 * dt as f32,
+    };
+
+    if input_manager.key_down(KeyCode::Z) && (game_data.chunk_generation.noise_type == NoiseType::SIMPLEX_2D
+                                          || game_data.chunk_generation.noise_type == NoiseType::SIMPLEX_3D)
+    {
+        game_data.chunk_generation.sx_scale += sx_speed;
+        game_data.debug.remake_test_scene = true;
+    }
+
+    if input_manager.key_down(KeyCode::X) && (game_data.chunk_generation.noise_type == NoiseType::SIMPLEX_2D
+                                          || game_data.chunk_generation.noise_type == NoiseType::SIMPLEX_3D)
+    {
+        game_data.chunk_generation.sx_scale -= sx_speed;
+        game_data.debug.remake_test_scene = true;
+    }
+        
     // Threshold
     let t_speed = match input_manager.key_down(KeyCode::LSHIFT)
     {

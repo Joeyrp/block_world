@@ -73,7 +73,7 @@ fn main()
     //                                 zoom_factor: 0.01, threshold: 0.3, threshold_falloff: 20, octaves: 3, bias: 0.5, seed: Some([0; 32]) };
     let mut game_data = GameData { debug: DebugSettings { print_help: true, print_chunk_info: true, remake_test_scene: false }, 
                                     chunk_generation: ChunkGeneration { noise_type: NoiseType::SIMPLEX_2D, offset:(0.0, 0.0), zoom_factor: 0.01, 
-                                                                        threshold: 0.3, threshold_falloff: 20, 
+                                                                        sx_scale: 32.0, threshold: 0.3, threshold_falloff: 20, 
                                                                         octaves: 3, bias: 0.5, seed: Some([0; 32]) } };
 
     // Scenes for demoing/debugging game systems

@@ -6,6 +6,7 @@ pub struct ChunkGeneration
     pub noise_type: NoiseType,
     pub offset: (f32, f32),
     pub zoom_factor: f32,
+    pub sx_scale: f32,
     pub threshold: f32,
     pub threshold_falloff: i32,
     pub octaves: i32,
