@@ -63,7 +63,12 @@ pub enum KeyCode
     LMENU = winuser::VK_LMENU as isize,
     RMENU = winuser::VK_RMENU as isize,
     ENTER = winuser::VK_RETURN as isize,
-    Escape = winuser::VK_ESCAPE as isize
+    Escape = winuser::VK_ESCAPE as isize,
+
+    UP = winuser::VK_UP as isize,
+    DOWN = winuser::VK_DOWN as isize,
+    LEFT = winuser::VK_LEFT as isize,
+    RIGHT = winuser::VK_RIGHT as isize,
 }
 
 

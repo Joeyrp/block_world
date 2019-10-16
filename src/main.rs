@@ -72,7 +72,7 @@ fn main()
     // let mut game_data = GameData { print_help: true, print_chunk_info: true, remake_test_scene: false, noise_type: NoiseType::SIMPLEX_2D, 
     //                                 zoom_factor: 0.01, threshold: 0.3, threshold_falloff: 20, octaves: 3, bias: 0.5, seed: Some([0; 32]) };
     let mut game_data = GameData { debug: DebugSettings { print_help: true, print_chunk_info: true, remake_test_scene: false }, 
-                                    chunk_generation: ChunkGeneration { noise_type: NoiseType::SIMPLEX_2D, zoom_factor: 0.01, 
+                                    chunk_generation: ChunkGeneration { noise_type: NoiseType::SIMPLEX_2D, offset:(0.0, 0.0), zoom_factor: 0.01, 
                                                                         threshold: 0.3, threshold_falloff: 20, 
                                                                         octaves: 3, bias: 0.5, seed: Some([0; 32]) } };
 
@@ -89,7 +89,6 @@ fn main()
     let mut frame_tracker = FrameTracker::new();
     let mut window_focused = true;
     let mut closed = false;
-
     
     Mouse::set_position(window_info.center.x, window_info.center.y);
     while !closed 
@@ -128,7 +127,7 @@ fn main()
         // Update Game
 
         chunk_test_scene.update(&mut game_data, delta_time);
-       //
+        //
 
         /////////////////////
         // Render frame

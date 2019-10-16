@@ -3,7 +3,7 @@ use std::rc::Rc;
 use rand::{ /* prelude::*, */ Rng, rngs::StdRng, SeedableRng};
 use glium_glyph::glyph_brush::{rusttype::Font, Section, rusttype::Scale};
 use glium_glyph::GlyphBrush;
-use crate::{ graphics::Gl, utils::mat4_to_array, GridPlane, AssetLib, Flip, graphics::WindowInfo, game::InputProcessor,
+use crate::{ graphics::Gl, utils::mat4_to_array, GridPlane, AssetLib, Flip, graphics::WindowInfo,
                 WorldChunk, game::world_chunk::Voxel, game::world_chunk::Attr, game::GameData, game::game_data::NoiseType, utils::OlcNoise, utils::SimplexNoise };
 
 
@@ -233,8 +233,8 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
             {
                 // Zoom into the noise by scaling down the x and z
                 // (or if zoom_factor is large than 1 it will scale up - resulting in chaotic noise)
-                let xf = x as f32 * game_data.chunk_generation.zoom_factor;
-                let zf = z as f32 * game_data.chunk_generation.zoom_factor;
+                let xf = (x as f32 + game_data.chunk_generation.offset.0) * game_data.chunk_generation.zoom_factor;
+                let zf = (z as f32 + game_data.chunk_generation.offset.1) * game_data.chunk_generation.zoom_factor;
 
                 let height_scale = noise_machine.noise_2D(xf, zf);
                 
@@ -291,9 +291,9 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
                 {
                     // Zoom into the noise by scaling down the x and z
                     // (or if zoom_factor is large than 1 it will scale up - resulting in chaotic noise)
-                    let xf = x as f32 * game_data.chunk_generation.zoom_factor;
+                    let xf = (x as f32 + game_data.chunk_generation.offset.0) * game_data.chunk_generation.zoom_factor;
                     let yf = y as f32 * game_data.chunk_generation.zoom_factor;
-                    let zf = z as f32 * game_data.chunk_generation.zoom_factor;
+                    let zf = (z as f32 + game_data.chunk_generation.offset.1) * game_data.chunk_generation.zoom_factor;
 
                     let noise_value = noise_machine.noise_3D(xf, yf, zf);
                     
@@ -349,13 +349,38 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
             NoiseType::RANDOM_2D => String::from(""),
             NoiseType::RANDOM_3D => String::from(format!("\nThreshold: {}", game_data.chunk_generation.threshold)),
             NoiseType::OLC => String::from(format!("\nOctaves: {}\nBias: {}", game_data.chunk_generation.octaves, game_data.chunk_generation.bias)),
-            NoiseType::SIMPLEX_2D => String::from(format!("\nZoom Factor: {}", game_data.chunk_generation.zoom_factor)),
-            NoiseType::SIMPLEX_3D => String::from(format!("\nZoom Factor: {}\nThreshold: {}\nThreshold Falloff: {}", 
+            
+            NoiseType::SIMPLEX_2D => String::from(format!("\nOffsets: ({}, {})\nZoom Factor: {}", game_data.chunk_generation.offset.0,
+                                                             game_data.chunk_generation.offset.1,game_data.chunk_generation.zoom_factor)),
+
+            NoiseType::SIMPLEX_3D => String::from(format!("\nOffsets: ({}, {})\nZoom Factor: {}\nThreshold: {}\nThreshold Falloff: {}", 
+                                                            game_data.chunk_generation.offset.0, game_data.chunk_generation.offset.1,
                                                             game_data.chunk_generation.zoom_factor, game_data.chunk_generation.threshold, 
                                                             game_data.chunk_generation.threshold_falloff)),
         };
 
         info
+    }
+
+    fn get_scene_controls_string(game_data: &GameData) -> String
+    {
+        let mut controls_string = String::from("Demo Controls:\n\nF1: Show/Hide this message\nF2: Show/Hide Chunk Info");
+        controls_string += "\n\nWASD: Move\nE/Q: Move Up/Down\nMouse Move: Look\n\n1, 2, 3, 4, 5: Change Noise Type";
+        controls_string += "\nV: Use Default Seed\nC: Use New Random Seed\n\nSHIFT: Move and Adjust Faster";
+        controls_string += "\nLeft Arrow, Right Arrow: Adjust Noise X Offset\nUp Arrow, Down Arrow: Adjust Noise Z Offset";
+      //  \n\tR: Adjust Bias/Zoom Factor Up\n\tF: Adjust Bias/Zoom Factor Down\n\tT: Adjust Threshold Up\n\tG: Adjust Threshold Down
+      //  \n\tY: Adjust Threshold Falloff Up\n\tH: Adjust Threshold Falloff Down\n\t"
+    
+        controls_string += match game_data.chunk_generation.noise_type
+        {
+            NoiseType::RANDOM_2D => "",
+            NoiseType::RANDOM_3D => "\nT/G: Adjust Threshold Up/Down",
+            NoiseType::OLC => "\nR/F: Adjust Bias Up/Down\nSPACE: Increase Octave",
+            NoiseType::SIMPLEX_2D => "\nR/F: Adjust Zoom Factor Up/Down",
+            NoiseType::SIMPLEX_3D => "\nR/F: Adjust Zoom Factor Up/Down\nT/G: Adjust Threshold Up/Down\nY/H: Adjust Threshold Falloff Up/Down",
+        };
+
+        controls_string
     }
 
     pub fn update(self: &mut ChunkDemoScene<'font, 'a>, game_data: &mut GameData, _delta_time: f64)
@@ -447,10 +472,10 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
         if game_data.debug.print_help
         {              
             self.glyph_brush.queue(Section {
-                text: InputProcessor::get_controls_string(),
+                text: &ChunkDemoScene::get_scene_controls_string(game_data),
                 scale: Scale { x: test_scale, y: test_scale },
                 screen_position: (50.0, 0.0),
-                bounds: (window_info.size.width as f32, window_info.size.height as f32 / 2.0),
+                bounds: (window_info.size.width as f32, window_info.size.height as f32),
                 ..Section::default()
             });
         }

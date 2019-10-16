@@ -4,6 +4,7 @@
 pub struct ChunkGeneration
 {
     pub noise_type: NoiseType,
+    pub offset: (f32, f32),
     pub zoom_factor: f32,
     pub threshold: f32,
     pub threshold_falloff: i32,
@@ -28,7 +29,7 @@ pub struct GameData
 }
 
 #[allow(non_camel_case_types)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum NoiseType
 {
     RANDOM_2D,

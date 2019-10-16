@@ -12,10 +12,12 @@ pub struct InputProcessor
 
 impl InputProcessor
 {
-    pub fn get_controls_string() -> &'static str
-    {
-        "Demo Controls:\n\n\tWASD: Move\n\tE: \tMove Up\n\tQ: Move Down\n\tMouse Move: Look\n\t1, 2, 3, 4, 5: Change Noise Type\n\tR: Adjust Bias/Zoom Factor Up\n\tF: Adjust Bias/Zoom Factor Down\n\tT: Adjust Threshold Up\n\tG: Adjust Threshold Down\n\tSPACE: Increase Octave\n\tY: Adjust Threshold Falloff Up\n\tH: Adjust Threshold Falloff Down\n\tV: Use Default Seed\n\tC: Use New Random Seed\n\tSHIFT: Move and Adjust Faster\n\tF1: Show/Hide this message\n\tF2: Show/Hide Chunk Info"
-    }
+    // pub fn get_debug_controls_string() -> String
+    // {
+    //     // "Demo Controls:\n\n    WASD: Move\n\tE: \tMove Up\n\tQ: Move Down\n\tMouse Move: Look\n\t1, 2, 3, 4, 5: Change Noise Type\n\tLeft Arrow, Right Arrow: Adjust Noise X Offset\n\tUp Arrow, Down Arrow: Adjust Noise Z Offset\n\tR: Adjust Bias/Zoom Factor Up\n\tF: Adjust Bias/Zoom Factor Down\n\tT: Adjust Threshold Up\n\tG: Adjust Threshold Down\n\tSPACE: Increase Octave\n\tY: Adjust Threshold Falloff Up\n\tH: Adjust Threshold Falloff Down\n\tV: Use Default Seed\n\tC: Use New Random Seed\n\tSHIFT: Move and Adjust Faster\n\tF1: Show/Hide this message\n\tF2: Show/Hide Chunk Info"
+    //     let mut controls_string = String::from("Demo Controls:\n\n");
+
+    // }
     
     /// Processes input for debug mode (allows flying around and editing chunk generation settings)
     pub fn process_input_debug(dt: f64, cam: &mut CameraFPS, window_info: &WindowInfo, input_manager: &mut InputManager, game_data: &mut GameData) -> bool
@@ -38,7 +40,6 @@ impl InputProcessor
     //  
 
     let mut speed = 35.0 * dt as f32;
-
     if input_manager.key_down(KeyCode::LSHIFT)
     {
         speed = speed * 2.0;
@@ -93,7 +94,7 @@ impl InputProcessor
     }
 
     // Octaves
-    if input_manager.key_pressed(KeyCode::SPACE)
+    if input_manager.key_pressed(KeyCode::SPACE) && game_data.chunk_generation.noise_type == NoiseType::OLC
     {
         game_data.chunk_generation.octaves += 1;
         if game_data.chunk_generation.octaves > 6
@@ -124,34 +125,25 @@ impl InputProcessor
     }
 
     // Zoom Factor/Bias
+    let zoom_speed = match input_manager.key_down(KeyCode::LSHIFT)
+        {
+            true => 0.025 * dt as f32,
+            false => 0.005 * dt as f32,
+        };
+
     if input_manager.key_down(KeyCode::R)
     {
         let ntype = game_data.chunk_generation.noise_type;
 
-        // use a closure to avoid duplicating this code
-        // a function would work too but then we'd need
-        // to pass in the game_data and input_manager
-
-        let mut inc_zoom = || -> _ {
-            if input_manager.key_down(KeyCode::LSHIFT)
-            {
-                game_data.chunk_generation.zoom_factor += 0.005;
-            }
-            else
-            {
-                game_data.chunk_generation.zoom_factor += 0.0005;
-            }
-        };
-
         match ntype
         {
 
-            NoiseType::SIMPLEX_2D => { inc_zoom() },
-            NoiseType::SIMPLEX_3D => { inc_zoom() },
+            NoiseType::SIMPLEX_2D => { game_data.chunk_generation.zoom_factor += zoom_speed },
+            NoiseType::SIMPLEX_3D => { game_data.chunk_generation.zoom_factor += zoom_speed },
             
             NoiseType::OLC =>
             {
-                game_data.chunk_generation.bias += 0.05;
+                game_data.chunk_generation.bias += zoom_speed;
             }
 
             _ => ()
@@ -166,14 +158,9 @@ impl InputProcessor
 
         // use a closure to avoid duplicating this code
         let mut dec_zoom = || -> _ {
-                if input_manager.key_down(KeyCode::LSHIFT)
-                {
-                    game_data.chunk_generation.zoom_factor -= 0.005;
-                }
-                else
-                {
-                    game_data.chunk_generation.zoom_factor -= 0.0005;
-                }
+
+                game_data.chunk_generation.zoom_factor -= zoom_speed;
+
 
                 if game_data.chunk_generation.zoom_factor < 0.0005
                 {
@@ -185,7 +172,7 @@ impl InputProcessor
         {
             NoiseType::OLC =>
             {
-                game_data.chunk_generation.bias -= 0.05;
+                game_data.chunk_generation.bias -= zoom_speed;
 
                 if game_data.chunk_generation.bias < 0.2
                 {
@@ -202,32 +189,26 @@ impl InputProcessor
         game_data.debug.remake_test_scene = true;
     }
 
+    // TODO: Don't adjust values if the current NoiseType doesn't use them
+    
     // Threshold
-    if input_manager.key_down(KeyCode::T)
+    let t_speed = match input_manager.key_down(KeyCode::LSHIFT)
     {
-        if input_manager.key_down(KeyCode::LSHIFT)
-        {
-            game_data.chunk_generation.threshold += 0.01;
-        }
-        else 
-        {
-            game_data.chunk_generation.threshold += 0.001;
-        }
-
+        true => 0.2 * dt as f32,
+        false => 0.05 * dt as f32,
+    };
+    
+    if input_manager.key_down(KeyCode::T) && (game_data.chunk_generation.noise_type == NoiseType::RANDOM_3D
+                                          || game_data.chunk_generation.noise_type == NoiseType::SIMPLEX_3D)
+    {
+        game_data.chunk_generation.threshold += t_speed;
         game_data.debug.remake_test_scene = true;
     }
 
-    if input_manager.key_down(KeyCode::G)
+    if input_manager.key_down(KeyCode::G) && (game_data.chunk_generation.noise_type == NoiseType::RANDOM_3D
+                                          || game_data.chunk_generation.noise_type == NoiseType::SIMPLEX_3D)
     {
-        if input_manager.key_down(KeyCode::LSHIFT)
-        {
-            game_data.chunk_generation.threshold -= 0.01;
-        }
-        else 
-        {
-            game_data.chunk_generation.threshold -= 0.001;
-        }
-
+        game_data.chunk_generation.threshold -= t_speed;
         if game_data.chunk_generation.threshold < 0.0
         {
             game_data.chunk_generation.threshold = 0.0;
@@ -237,36 +218,58 @@ impl InputProcessor
     }
 
     // Threshold Falloff
-    if input_manager.key_down(KeyCode::Y)
+    let ft_speed = match input_manager.key_down(KeyCode::LSHIFT)
     {
-        if input_manager.key_down(KeyCode::LSHIFT)
-        {
-            game_data.chunk_generation.threshold_falloff += 5;
-        }
-        else 
-        {
-            game_data.chunk_generation.threshold_falloff += 1;
-        }
-
+        true => (250.0 * dt as f32) as i32,
+        false => (100.0 * dt as f32) as i32,
+    };
+    if input_manager.key_down(KeyCode::Y) && game_data.chunk_generation.noise_type == NoiseType::SIMPLEX_3D
+    {
+       // println!("ft_speed: {}", ft_speed);
+        game_data.chunk_generation.threshold_falloff += ft_speed;
         game_data.debug.remake_test_scene = true;
     }
 
-    if input_manager.key_down(KeyCode::H)
+    if input_manager.key_down(KeyCode::H) && game_data.chunk_generation.noise_type == NoiseType::SIMPLEX_3D
     {
-        if input_manager.key_down(KeyCode::LSHIFT)
-        {
-            game_data.chunk_generation.threshold_falloff -= 5;
-        }
-        else 
-        {
-            game_data.chunk_generation.threshold_falloff -= 1;
-        }
+        game_data.chunk_generation.threshold_falloff -= ft_speed;
 
         if game_data.chunk_generation.threshold_falloff < 1
         {
             game_data.chunk_generation.threshold_falloff = 1;
         }
 
+        game_data.debug.remake_test_scene = true;
+    }
+
+    // Noise Offsets Z
+    let ot_speed = match input_manager.key_down(KeyCode::LSHIFT)
+    {
+        true => 75.0 * dt as f32,
+        false => 25.0 * dt as f32,
+    };
+    if input_manager.key_down(KeyCode::UP)
+    {
+        game_data.chunk_generation.offset.1 += ot_speed;
+        game_data.debug.remake_test_scene = true;
+    }
+
+    if input_manager.key_down(KeyCode::DOWN)
+    {
+        game_data.chunk_generation.offset.1 -= ot_speed;
+        game_data.debug.remake_test_scene = true;
+    }
+
+    // Noise Offsets X
+    if input_manager.key_down(KeyCode::LEFT)
+    {
+        game_data.chunk_generation.offset.0 += ot_speed;
+        game_data.debug.remake_test_scene = true;
+    }
+
+    if input_manager.key_down(KeyCode::RIGHT)
+    {
+        game_data.chunk_generation.offset.0 -= ot_speed;
         game_data.debug.remake_test_scene = true;
     }
 
