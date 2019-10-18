@@ -1,5 +1,5 @@
 
 
-Chunk Generation Refactoring:
-    ☐ Move chunk generation into it's own set of generator structs (or maybe just a collection of functions or traits)
-    ☐ Make the seed required instead of using Option<>
+Chunk Demo Scene Refactoring:
+    ✔ Move chunk generation into it's own set of generator structs (or maybe just a collection of functions or traits) @done (10/18/2019, 4:47:55 PM)
+    ☐ Refactor GameData storage and InputProcessor calls into the ChunkDemoScene
