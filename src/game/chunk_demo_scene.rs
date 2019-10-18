@@ -3,9 +3,10 @@ use std::rc::Rc;
 use rand::{ /* prelude::*, */ Rng, rngs::StdRng, SeedableRng};
 use glium_glyph::glyph_brush::{rusttype::Font, Section, rusttype::Scale};
 use glium_glyph::GlyphBrush;
-use crate::{ graphics::Gl, utils::mat4_to_array, GridPlane, AssetLib, Flip, graphics::WindowInfo,
-                WorldChunk, game::world_chunk::Voxel, game::world_chunk::Attr, game::GameData, game::game_data::NoiseType, utils::OlcNoise, utils::SimplexNoise };
-
+use crate::graphics::{ Gl, GridPlane, Flip, WindowInfo};
+use crate::game::{AssetLib, WorldChunk, world_chunk::Voxel, world_chunk::Attr, GameData, game_data::NoiseType, 
+                    ChunkGenerator, BaseChunkGenerator};
+use crate::utils::{OlcNoise, SimplexNoise, mat4_to_array};
 
 pub struct ChunkDemoScene<'font, 'a>
 {
@@ -393,24 +394,30 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
     {
         if game_data.debug.remake_test_scene
         {
-            match game_data.chunk_generation.noise_type
-            {
-                NoiseType::RANDOM_2D =>
-                    self.make_chunk_random2d(game_data),
+            // match game_data.chunk_generation.noise_type
+            // {
+            //     NoiseType::RANDOM_2D =>
+            //         self.make_chunk_random2d(game_data),
 
-                NoiseType::RANDOM_3D =>
-                    self.make_chunk_random3d(game_data),
+            //     NoiseType::RANDOM_3D =>
+            //         self.make_chunk_random3d(game_data),
 
-                NoiseType::OLC => 
-                    self.make_noise2D_test(game_data),
+            //     NoiseType::OLC => 
+            //         self.make_noise2D_test(game_data),
                 
-                NoiseType::SIMPLEX_2D => 
-                    self.make_simplex_noise2D(game_data),
+            //     NoiseType::SIMPLEX_2D => 
+            //         self.make_simplex_noise2D(game_data),
 
-                NoiseType::SIMPLEX_3D =>
-                    self.make_simplex_noise3D(game_data),
-            };
+            //     NoiseType::SIMPLEX_3D =>
+            //         self.make_simplex_noise3D(game_data),
+            // };
+
+            let generator = BaseChunkGenerator::new(game_data.chunk_generation.seed);
+            let x = game_data.chunk_generation.offset.0;
+            let z = game_data.chunk_generation.offset.1;
+            generator.generate(&mut self.chunk, [x, z], &game_data.chunk_generation);
             
+            self.force_chunk_regen = true;
             game_data.debug.remake_test_scene = false;
         }
 

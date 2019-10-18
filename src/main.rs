@@ -71,7 +71,7 @@ fn main()
     // Data for use with the game
     // let mut game_data = GameData { print_help: true, print_chunk_info: true, remake_test_scene: false, noise_type: NoiseType::SIMPLEX_2D, 
     //                                 zoom_factor: 0.01, threshold: 0.3, threshold_falloff: 20, octaves: 3, bias: 0.5, seed: Some([0; 32]) };
-    let mut game_data = GameData { debug: DebugSettings { print_help: true, print_chunk_info: true, remake_test_scene: false }, 
+    let mut game_data = GameData { debug: DebugSettings { print_help: true, print_chunk_info: true, remake_test_scene: true }, 
                                     chunk_generation: ChunkGeneration { noise_type: NoiseType::SIMPLEX_2D, offset:(0.0, 0.0), zoom_factor: 0.01, 
                                                                         sx_scale: 32.0, threshold: 0.3, threshold_falloff: 20, 
                                                                         octaves: 3, bias: 0.5, seed: Some([0; 32]) } };
@@ -80,7 +80,7 @@ fn main()
     //let mut obj_demo_scene = ObjectDemoScene::new(&mut asset_lib, &display, &perspective).unwrap();
     let mut chunk_test_scene = ChunkDemoScene::new(&mut asset_lib, display.clone(), &perspective).unwrap();
 
-    chunk_test_scene.make_simplex_noise2D(&game_data);
+    //chunk_test_scene.make_simplex_noise2D(&game_data);
     //
     
     ///////////////////////////////////////////////////////////
