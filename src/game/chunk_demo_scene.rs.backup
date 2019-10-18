@@ -1,11 +1,12 @@
 
 use std::rc::Rc;
+use rand::{ /* prelude::*, */ Rng, rngs::StdRng, SeedableRng};
 use glium_glyph::glyph_brush::{rusttype::Font, Section, rusttype::Scale};
 use glium_glyph::GlyphBrush;
 use crate::graphics::{ Gl, GridPlane, Flip, WindowInfo};
 use crate::game::{AssetLib, WorldChunk, world_chunk::Voxel, world_chunk::Attr, GameData, game_data::NoiseType, 
-                    ChunkGenerator, BaseChunkGenerator, RandomChunkGenerator};
-use crate::utils::{OlcNoise, mat4_to_array};
+                    ChunkGenerator, BaseChunkGenerator};
+use crate::utils::{OlcNoise, SimplexNoise, mat4_to_array};
 
 pub struct ChunkDemoScene<'font, 'a>
 {
@@ -76,6 +77,92 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
         self.chunk.layers[15].layer[7][7].id = 0;
     }
 
+    pub fn make_chunk_random2d(self: &mut ChunkDemoScene<'font, 'a>,  game_data: &GameData)
+    {
+        self.chunk.make_empty();
+        
+        let seed = match game_data.chunk_generation.seed
+        {
+            Some(s) => s,
+            None => {
+                [0; 32]
+            }
+        };
+
+        let mut rng: StdRng = SeedableRng::from_seed(seed);
+
+        for x in 0..self.chunk.width
+        {
+            for z in 0..self.chunk.depth
+            {
+                let height_scale = rng.gen::<f32>();
+                //println!("Noise sample at ({}, {}): {}", x, z, height_scale);
+                
+                let final_height = (1.0 + height_scale * ((self.chunk.height - 1) as f32)) as i32; 
+                //println!("height_scale: {} -- final_height: {}", height_scale, final_height);
+
+                // fill chunk column up to height
+                for i in 0..(final_height + 1)
+                {
+                    let value = match i
+                    {
+                        0...7 => 3,
+                        8...9 => 2,
+                        _ => 1
+                    };
+
+                    // heigth - i is a hack to put the grass on the top and the stone on the bottom of the chunk
+                    self.chunk.layers[i as usize].layer[x][z] = Voxel { id: value, visible: true };
+                }
+            }
+        }
+
+        // println!("\nNew chunk generated with Random 2D Noise:\nseed: {:?}", seed);
+        self.force_chunk_regen = true;
+    }
+
+    pub fn make_chunk_random3d(self: &mut ChunkDemoScene<'font, 'a>,  game_data: &GameData)
+    {
+        self.chunk.make_empty();
+
+        let seed = match game_data.chunk_generation.seed
+        {
+            Some(s) => s,
+            None => {
+                [0; 32]
+            }
+        };
+
+        let mut rng: StdRng = SeedableRng::from_seed(seed);
+        for y in 0..self.chunk.height
+        {
+            for x in 0..self.chunk.width
+            {
+                for z in 0..self.chunk.depth
+                {
+                    let noise_value = rng.gen::<f32>();
+
+                    let mut v = Voxel { id: 0, visible: true };
+
+                    if noise_value >= game_data.chunk_generation.threshold
+                    {
+                        v.id = match y
+                        {
+                            0...7 => 3,
+                            8...9 => 2,
+                            _ => 1
+                        };
+                    }
+
+                    self.chunk.layers[y as usize].layer[x][z] = v; 
+                }
+            }
+        }
+
+        // println!("\nNew chunk generated with Random 2D Noise:\nseed: {:?}\nthreshold: {}", seed, threshold);
+        self.force_chunk_regen = true;
+    }
+
     #[allow(non_snake_case)]
     pub fn make_noise2D_test(self: &mut ChunkDemoScene<'font, 'a>,  game_data: &GameData)
     {
@@ -130,7 +217,130 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
         self.force_chunk_regen = true;
     }
 
-   
+    #[allow(non_snake_case)]
+    pub fn make_simplex_noise2D(self: &mut ChunkDemoScene<'font, 'a>,  game_data: &GameData)
+    {
+        self.chunk.make_empty();
+
+        // The noise generator
+        let noise_machine = SimplexNoise::new(game_data.chunk_generation.seed);
+
+        // Only testing 2D noise to start
+        // In this test the chunk will be solid (no caves)
+        // but will have variable height
+        for x in 0..self.chunk.width
+        {
+            for z in 0..self.chunk.depth
+            {
+                // Zoom into the noise by scaling down the x and z
+                // (or if zoom_factor is large than 1 it will scale up - resulting in chaotic noise)
+                let xf = (x as f32 + game_data.chunk_generation.offset.0) * game_data.chunk_generation.zoom_factor;
+                let zf = (z as f32 + game_data.chunk_generation.offset.1) * game_data.chunk_generation.zoom_factor;
+
+                let height_scale = noise_machine.noise_2D(xf, zf, game_data.chunk_generation.sx_scale);
+                
+                
+                // Result of the noise is between -1 and 1. Need to scale it to be between
+                // 0 and 1:
+                // NewValue = (((OldValue - OldMin) * (NewMax - NewMin)) / (OldMax - OldMin)) + NewMin
+
+                //  or split into 3 lines:
+                // OldRange = (OldMax - OldMin)  
+                // NewRange = (NewMax - NewMin)  
+                // NewValue = (((OldValue - OldMin) * NewRange) / OldRange) + NewMin
+                let old_range = 2.0;
+                let new_range = 1.0;
+                let height_scale = ((height_scale + 1.0) * new_range) / old_range;
+                let mut final_height = (1.0 + height_scale * ((self.chunk.height - 1) as f32)) as i32;
+
+                if final_height >= 32
+                {
+                    // println!("height_scale: {} -- final_height: {}", height_scale, final_height);
+                    final_height = 31;
+                }
+
+                // fill chunk column up to height
+                for i in 0..(final_height + 1)
+                {
+                    let value = match i
+                    {
+                        0...7 => 3,
+                        8...9 => 2,
+                        _ => 1
+                    };
+
+                    // heigth - i is a hack to put the grass on the top and the stone on the bottom of the chunk
+                    self.chunk.layers[i as usize].layer[x][z] = Voxel { id: value, visible: true };
+                }
+            }
+        }
+        // println!("\nNew chunk generated with Simplex Noise:\nSeed: {:?}\nZoom Factor: {}", seed, zoom_factor);
+        self.force_chunk_regen = true;
+    }
+
+    #[allow(non_snake_case)]
+    pub fn make_simplex_noise3D(self: &mut ChunkDemoScene<'font, 'a>, game_data: &GameData)
+    {
+        self.chunk.make_empty();
+
+        // The noise generator
+        let noise_machine = SimplexNoise::new(game_data.chunk_generation.seed);
+
+        // Only testing 2D noise to start
+        // In this test the chunk will be solid (no caves)
+        // but will have variable height
+        for y in 0..self.chunk.height
+        {
+            for x in 0..self.chunk.width
+            {
+                for z in 0..self.chunk.depth
+                {
+                    // Zoom into the noise by scaling down the x and z
+                    // (or if zoom_factor is large than 1 it will scale up - resulting in chaotic noise)
+                    let xf = (x as f32 + game_data.chunk_generation.offset.0) * game_data.chunk_generation.zoom_factor;
+                    let yf = y as f32 * game_data.chunk_generation.zoom_factor;
+                    let zf = (z as f32 + game_data.chunk_generation.offset.1) * game_data.chunk_generation.zoom_factor;
+
+                    let noise_value = noise_machine.noise_3D(xf, yf, zf, game_data.chunk_generation.sx_scale);
+                    
+                    
+                    // Result of the noise is between -1 and 1. Need to scale it to be between
+                    // 0 and 1:
+                    let old_range = 2.0;
+                    let new_range = 1.0;
+                    let noise_value = ((noise_value + 1.0) * new_range) / old_range;
+
+                    // use noise_value to decide on the block type
+                    // threshold will decide if the block should be created or not
+                    
+                    // Function to increase threshold as height increases
+                    // final = threshold + ((y^2) / 100) / falloff
+                    let sqy = (y*y) as i32;
+                    let sqy = sqy / 100;
+                    let final_threshold = game_data.chunk_generation.threshold + ((sqy as f32)/game_data.chunk_generation.threshold_falloff as f32);
+
+                    let mut v = Voxel { id: 0, visible: true };
+
+                    if noise_value >= final_threshold
+                    {
+                        v.id = match y
+                        {
+                            0...7 => 3,
+                            8...9 => 2,
+                            _ => 1
+                        };
+                    }
+
+                    self.chunk.layers[y as usize].layer[x][z] = v; 
+                    
+                }
+            }
+        }
+        
+        // println!("\nNew chunk generated with Simplex Noise:\nSeed: {:?}\nZoom Factor: {}\nThreshold: {}\nThreshold Falloff: {}", 
+        //             seed, zoom_factor, threshold, threshold_falloff);
+        self.force_chunk_regen = true;
+    }
 
     fn get_chunk_info_string(chunk: &WorldChunk, game_data: &GameData) -> String
     {
@@ -162,9 +372,9 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
     fn get_scene_controls_string(game_data: &GameData) -> String
     {
         let mut controls_string = String::from("Demo Controls:\n\nF1: Show/Hide this message\nF2: Show/Hide Chunk Info");
-        controls_string += "\n\nWASD: Move\nE/Q: Move Up/Down\nMouse Move: Look\nSHIFT: Move and Adjust Faster";
-        controls_string += "\n\n1, 2, 3, 4, 5: Change Noise Type\nV: Use Default Seed\nC: Use New Random Seed";
-        controls_string += "\n";
+        controls_string += "\n\nWASD: Move\nE/Q: Move Up/Down\nMouse Move: Look\n\n1, 2, 3, 4, 5: Change Noise Type";
+        controls_string += "\nV: Use Default Seed\nC: Use New Random Seed\n\nSHIFT: Move and Adjust Faster";
+        controls_string += "\nLeft Arrow, Right Arrow: Adjust Noise X Offset\nUp Arrow, Down Arrow: Adjust Noise Z Offset";
       //  \n\tR: Adjust Bias/Zoom Factor Up\n\tF: Adjust Bias/Zoom Factor Down\n\tT: Adjust Threshold Up\n\tG: Adjust Threshold Down
       //  \n\tY: Adjust Threshold Falloff Up\n\tH: Adjust Threshold Falloff Down\n\t"
     
@@ -173,41 +383,21 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
             NoiseType::RANDOM_2D => "",
             NoiseType::RANDOM_3D => "\nT/G: Adjust Threshold Up/Down",
             NoiseType::OLC => "\nR/F: Adjust Bias Up/Down\nSPACE: Increase Octave",
-            NoiseType::SIMPLEX_2D => "\nLeft Arrow, Right Arrow: Adjust Noise X Offset\nUp Arrow, Down Arrow: Adjust Noise Z Offset\nR/F: Adjust Zoom Factor Up/Down\nZ/X: Adjust Scale Up/Down",
-            NoiseType::SIMPLEX_3D => "\nLeft Arrow, Right Arrow: Adjust Noise X Offset\nUp Arrow, Down Arrow: Adjust Noise Z Offset\nR/F: Adjust Zoom Factor Up/Down\nZ/X: Adjust Scale Up/Down\nT/G: Adjust Threshold Up/Down\nY/H: Adjust Threshold Falloff Up/Down",
+            NoiseType::SIMPLEX_2D => "\nR/F: Adjust Zoom Factor Up/Down\nZ/X: Adjust Scale Up/Down",
+            NoiseType::SIMPLEX_3D => "\nR/F: Adjust Zoom Factor Up/Down\nZ/X: Adjust Scale Up/Down\nT/G: Adjust Threshold Up/Down\nY/H: Adjust Threshold Falloff Up/Down",
         };
 
         controls_string
-    }
-
-    fn base_gen(&mut self, game_data: &mut GameData)
-    {
-        let mut generator = BaseChunkGenerator::new(game_data.chunk_generation.seed);
-        let x = game_data.chunk_generation.offset.0;
-        let z = game_data.chunk_generation.offset.1;
-        generator.generate(&mut self.chunk, [x, z], &game_data.chunk_generation);
-    }
-
-    fn rand_gen(&mut self, game_data: &mut GameData)
-    {
-        let mut generator = RandomChunkGenerator::new(game_data.chunk_generation.seed);
-        generator.generate(&mut self.chunk, [0.0; 2], &game_data.chunk_generation);
     }
 
     pub fn update(self: &mut ChunkDemoScene<'font, 'a>, game_data: &mut GameData, _delta_time: f64)
     {
         if game_data.debug.remake_test_scene
         {
-            match game_data.chunk_generation.noise_type
-            {
-                NoiseType::RANDOM_2D => self.rand_gen(game_data),
-                NoiseType::RANDOM_3D => self.rand_gen(game_data),
-
-                NoiseType::SIMPLEX_2D => self.base_gen(game_data),
-                NoiseType::SIMPLEX_3D => self.base_gen(game_data),
-
-                NoiseType::OLC => self.make_noise2D_test(game_data),
-            };
+            let generator = BaseChunkGenerator::new(game_data.chunk_generation.seed);
+            let x = game_data.chunk_generation.offset.0;
+            let z = game_data.chunk_generation.offset.1;
+            generator.generate(&mut self.chunk, [x, z], &game_data.chunk_generation);
             
             self.force_chunk_regen = true;
             game_data.debug.remake_test_scene = false;

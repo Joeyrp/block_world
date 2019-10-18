@@ -131,6 +131,12 @@ impl InputProcessor
                 false => 0.005 * dt as f32,
             };
 
+        let zoom_speed_bias = match input_manager.key_down(KeyCode::LSHIFT)
+            {
+                true => 0.25 * dt as f32,
+                false => 0.05 * dt as f32,
+            };
+
         if input_manager.key_down(KeyCode::R)
         {
             let ntype = game_data.chunk_generation.noise_type;
@@ -143,7 +149,7 @@ impl InputProcessor
                 
                 NoiseType::OLC =>
                 {
-                    game_data.chunk_generation.bias += zoom_speed;
+                    game_data.chunk_generation.bias += zoom_speed_bias;
                 }
 
                 _ => ()

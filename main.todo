@@ -1,5 +1,5 @@
 
 
-Chunk Demo Scene:
+Chunk Generation Refactoring:
     ☐ Move chunk generation into it's own set of generator structs (or maybe just a collection of functions or traits)
-    
+    ☐ Make the seed required instead of using Option<>

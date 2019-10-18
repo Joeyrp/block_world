@@ -26,7 +26,7 @@ use graphics::{Gl, WindowInfo, CameraFPS, GridPlane, Mesh, Program, Texture, Fli
 
 mod game;
 use game::{GameData, DebugSettings, ChunkGeneration, NoiseType, AssetLib, 
-            InputManager, InputProcessor, /* ObjectDemoScene ,*/ ChunkDemoScene, WorldChunk};
+            InputManager, InputProcessor, /* ObjectDemoScene ,*/ ChunkDemoScene};
 //
 
 
