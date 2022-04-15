@@ -105,8 +105,8 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
                 {
                     let value = match i
                     {
-                        0...7 => 3,
-                        8...9 => 2,
+                        0..=7 => 3,
+                        8..=9 => 2,
                         _ => 1
                     };
 
@@ -147,8 +147,8 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
                     {
                         v.id = match y
                         {
-                            0...7 => 3,
-                            8...9 => 2,
+                            0..=7 => 3,
+                            8..=9 => 2,
                             _ => 1
                         };
                     }
@@ -201,8 +201,8 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
                 {
                     let value = match i
                     {
-                        0...7 => 3,
-                        8...9 => 2,
+                        0..=7 => 3,
+                        8..=9 => 2,
                         _ => 1
                     };
 
@@ -263,8 +263,8 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
                 {
                     let value = match i
                     {
-                        0...7 => 3,
-                        8...9 => 2,
+                        0..=7 => 3,
+                        8..=9 => 2,
                         _ => 1
                     };
 
@@ -324,8 +324,8 @@ impl<'font, 'a> ChunkDemoScene<'font, 'a>
                     {
                         v.id = match y
                         {
-                            0...7 => 3,
-                            8...9 => 2,
+                            0..=7 => 3,
+                            8..=9 => 2,
                             _ => 1
                         };
                     }
