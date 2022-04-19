@@ -8,4 +8,4 @@ I was (and still am really) pretty new to Rust when I wrote this. The code is no
 The instructions for interacting with the demo will appear on screen and change based on which noise algorithm is selected.
 
 ## Exampe Screen Shot
-![demo_screen](https://raw.githubusercontent.com/joeyrp/block_world/master/assets/block_world_scrn1.png)
+![demo_screen](https://raw.githubusercontent.com/joeyrp/block_world/master/assets/block_world_scrn1.PNG)
