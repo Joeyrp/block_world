@@ -1,4 +1,15 @@
-
+/******************************************************************************
+*	File		-	main.rs
+*	Author		-	Joey Pollack
+*	Date		-	2019/09/17 (y/m/d)
+*	Mod Date	-	2022/04/19 (y/m/d)
+*	Description	-	This is a demo project I used to learn about OpenGL in Rust.
+*                   It's not commented very well so I appologize for that if
+*                   you're here looking through the code. The code is also
+*                   poorly written/organized in several places and while I'd
+8                   love to fix it, I think I'd rather just work on a new project.
+*                   So I'll leave this here for archive purposes.
+******************************************************************************/
 use std::{thread, time, rc::Rc};
 
 #[macro_use]

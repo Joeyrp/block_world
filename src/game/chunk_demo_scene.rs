@@ -1,3 +1,10 @@
+/******************************************************************************
+*	File		-	chunk_demo_scene.rs
+*	Author		-	Joey Pollack
+*	Date		-	2019/09/17 (y/m/d)
+*	Mod Date	-	2019/09/17 (y/m/d)
+*	Description	-	This is the main demo scene
+******************************************************************************/
 
 use std::rc::Rc;
 use rand::{ /* prelude::*, */ Rng, rngs::StdRng, SeedableRng};

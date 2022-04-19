@@ -1,3 +1,10 @@
+/******************************************************************************
+*	File		-	object_demo_scene.rs
+*	Author		-	Joey Pollack
+*	Date		-	2019/09/17 (y/m/d)
+*	Mod Date	-	2019/09/17 (y/m/d)
+*	Description	-	scene to test asset rendering
+******************************************************************************/
 
 use crate::{ utils::mat4_to_array, GridPlane, AssetLib, Flip };
 
